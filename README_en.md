@@ -5,23 +5,30 @@
 [![codecov](https://codecov.io/gh/yakumioto/go-crypto-suite/graph/badge.svg?token=HqETyi1zYV)](https://codecov.io/gh/yakumioto/go-crypto-suite)
 [![actions](https://github.com/yakumioto/go-crypto-suite/actions/workflows/ci.yaml/badge.svg)](https://github.com/yakumioto/go-crypto-suite/actions)
 
-go-crypto-suite is a Go library that provides a set of cryptographic utilities. It includes interfaces and functions for handling cryptographic keys, such as Key, KeyGenerator, and KeyImporter. These interfaces provide methods for key generation, import, signing, verifying, encrypting, and decrypting.
+# go-crypto-suite
+
+A fast, easy-to-use, and convenient encryption library for Go, utilizing a unified interface to support key generation, key import/export, encryption/decryption, signing/verification, and other functions.
 
 ## Features
 
-- Supports a variety of cryptographic algorithms, including:
-    - HMAC SHA (SHA256, SHA512)
-    - AES CBC (128-bit, 192-bit, 256-bit)
-    - AES GCM (128-bit, 192-bit, 256-bit)
-    - ECDSA (P256, P384)
-    - RSA (1024-bit, 2048-bit, 4096-bit)
-- Provides a simple and consistent interface for working with cryptographic keys
-- Allows keys to be represented as either byte slices or strings
-- Includes functions for key generation and import
+Based on Go's generic features, it supports `[]byte` and `string`.
+
+Unified ciphertext format: {algorithm identifier}.{ciphertext}, {algorithm identifier}.{signature}, {algorithm identifier}.{ciphertext}.{signature}.
+
+- Supports symmetric keys
+  - AES CBC (128-bit, 192-bit, 256-bit)
+  - AES GCM (128-bit, 192-bit, 256-bit)
+  - Key import
+- Supports asymmetric keys
+  - ECDSA (P256, P384)
+  - RSA (1024-bit, 2048-bit, 4096-bit)
+  - Key generation
+  - Key import
+- Supports hash algorithms
+  - HMAC SHA (SHA256, SHA512)
+  - Key import
 
 ## Installation
-
-To install go-crypto-suite, use `go get`:
 
 ```
 go get github.com/yakumioto/go-crypto-suite
@@ -29,13 +36,14 @@ go get github.com/yakumioto/go-crypto-suite
 
 ## Usage
 
-Here's a basic example that demonstrates encrypting and decrypting a string using AES-CBC-128:
+Here's a basic example demonstrating how to use AES-CBC-128 to encrypt and decrypt a string:
 
 ```go
 package main
 
 import (
     "fmt"
+    
     "github.com/yakumioto/go-crypto-suite"
 )
 
@@ -59,15 +67,17 @@ func main() {
 }
 ```
 
-This will output:
-```
-hello world
-```
+## Acknowledgements
+
+This project was inspired by the following projects:
+
+- Hyperledger Fabric: https://github.com/hyperledger/fabric
+- Bitwarden: https://bitwarden.com/help/bitwarden-security-white-paper
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a pull request or open an issue.
+Contributions are welcome! Please feel free to submit pull requests or open issues.
 
 ## License
 
-This project is licensed under the terms of the MIT license.
+This project is licensed under the MIT License.

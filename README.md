@@ -5,23 +5,28 @@
 [![codecov](https://codecov.io/gh/yakumioto/go-crypto-suite/graph/badge.svg?token=HqETyi1zYV)](https://codecov.io/gh/yakumioto/go-crypto-suite)
 [![actions](https://github.com/yakumioto/go-crypto-suite/actions/workflows/ci.yaml/badge.svg)](https://github.com/yakumioto/go-crypto-suite/actions)
 
-go-crypto-suite 是一个 Go 语言的加密工具库，提供了一套用于处理密码学密钥的接口和函数，例如 Key、KeyGenerator 和 KeyImporter。这些接口提供了密钥生成、导入、签名、验证、加密和解密等方法。
+一个快速易用方便的 Go 语言的加密工具库、采用统一的接口实现支持密钥生成、密钥导入导出、加密解密、签名验签、等功能。[README in English](README_en.md)
 
-## 特性
+## 特征
 
-- 支持多种加密算法，包括：
-    - HMAC SHA（SHA256、SHA512）
-    - AES CBC（128位、192位、256位）
-    - AES GCM（128位、192位、256位）
-    - ECDSA（P256、P384）
-    - RSA（1024位、2048位、4096位）
-- 提供简单一致的密码学密钥操作接口
-- 允许将密钥表示为字节切片或字符串
-- 包含密钥生成和导入的函数
+基于 Go 范型特性，支持 `[]byte` 、`string`。
+
+统一的密文格式：{算法标识}.{密文}、{算法标识}.{签名}、{算法标识}.{密文}.{签名}。
+
+- 支持对称密钥
+  - AES CBC（128位、192位、256位）
+  - AES GCM（128位、192位、256位）
+  - 密钥导入
+- 支持非对称密钥
+  - ECDSA（P256、P384）
+  - RSA（1024位、2048位、4096位）
+  - 密钥生成
+  - 密钥导入
+- 支持哈希算法
+  - HMAC SHA（SHA256、SHA512）
+  - 密钥导入
 
 ## 安装
-
-要安装 go-crypto-suite，请使用 `go get`：
 
 ```
 go get github.com/yakumioto/go-crypto-suite
@@ -36,6 +41,7 @@ package main
 
 import (
     "fmt"
+	
     "github.com/yakumioto/go-crypto-suite"
 )
 
@@ -59,10 +65,12 @@ func main() {
 }
 ```
 
-输出结果为：
-```
-hello world
-```
+## 感谢
+
+项目受到了以下项目的启发：
+
+- Hyperledger Fabric： https://github.com/hyperledger/fabric
+- Bitwarden：https://bitwarden.com/help/bitwarden-security-white-paper
 
 ## 贡献
 
