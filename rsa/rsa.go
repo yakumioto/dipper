@@ -6,7 +6,6 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
-	"crypto/subtle"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
@@ -187,7 +186,7 @@ func (r *PublicKeyImpl[T]) Verify(msg, signature T) (bool, error) {
 	}
 	digest := h.Sum(nil)
 
-	if subtle.ConstantTimeCompare(digest, providedDigest) == 0 {
+	if !bytes.Equal(digest, providedDigest) {
 		return false, fmt.Errorf("rsa: invalid digest")
 	}
 

@@ -16,6 +16,10 @@ import (
 	"github.com/yakumioto/go-crypto-suite/utils"
 )
 
+var (
+	ErrUnsupportedMethod = errors.New("aes: unsupported method")
+)
+
 type CbcKeyImpl[T types.DataType] struct {
 	key       []byte
 	algorithm types.Algorithm
@@ -37,15 +41,15 @@ func (a *CbcKeyImpl[T]) SKI() T {
 }
 
 func (a *CbcKeyImpl[T]) PublicKey() (key.Key[T], error) {
-	return nil, errors.New("aes-cbc: unsupported method")
+	return nil, ErrUnsupportedMethod
 }
 
 func (a *CbcKeyImpl[T]) Sign(_ T) (T, error) {
-	return T(""), errors.New("aes-cbc: unsupported method")
+	return T(""), ErrUnsupportedMethod
 }
 
 func (a *CbcKeyImpl[T]) Verify(_, _ T) (bool, error) {
-	return false, errors.New("aes-cbc: unsupported method")
+	return false, ErrUnsupportedMethod
 }
 
 func (a *CbcKeyImpl[T]) Encrypt(plaintext T) (T, error) {
@@ -144,15 +148,15 @@ func (a *GcmKeyImpl[T]) SKI() T {
 }
 
 func (a *GcmKeyImpl[T]) PublicKey() (key.Key[T], error) {
-	return nil, errors.New("aes-gcm: unsupported method")
+	return nil, ErrUnsupportedMethod
 }
 
 func (a *GcmKeyImpl[T]) Sign(_ T) (T, error) {
-	return T(""), errors.New("aes-gcm: unsupported method")
+	return T(""), ErrUnsupportedMethod
 }
 
 func (a *GcmKeyImpl[T]) Verify(_, _ T) (bool, error) {
-	return false, errors.New("aes-gcm: unsupported method")
+	return false, ErrUnsupportedMethod
 }
 
 func (a *GcmKeyImpl[T]) Encrypt(plaintext T) (T, error) {

@@ -20,9 +20,13 @@ const (
 const (
 	HmacSha256 Algorithm = iota + HashType + 1
 	HmacSha512
+	Pbkdf2Sha256
+	Pbkdf2Sha512
 
-	TypeHmacSha256 AlgorithmType = "HMAC_SHA256"
-	TypeHmacSha512 AlgorithmType = "HMAC_SHA512"
+	TypeHmacSha256   AlgorithmType = "HMAC_SHA256"
+	TypeHmacSha512   AlgorithmType = "HMAC_SHA512"
+	TypePbkdf2Sha256 AlgorithmType = "PBKDF2_SHA256"
+	TypePbkdf2Sha512 AlgorithmType = "PBKDF2_SHA512"
 )
 
 // symmetric algorithms type
@@ -61,37 +65,46 @@ const (
 
 var (
 	algorithms = map[AlgorithmType]Algorithm{
-		TypeHmacSha256: HmacSha256,
-		TypeHmacSha512: HmacSha512,
-		TypeAesCbc128:  AesCbc128,
-		TypeAesCbc192:  AesCbc192,
-		TypeAesCbc256:  AesCbc256,
-		TypeAesGcm128:  AesGcm128,
-		TypeAesGcm192:  AesGcm192,
-		TypeAesGcm256:  AesGcm256,
-		TypeEcdsaP256:  EcdsaP256,
-		TypeEcdsaP384:  EcdsaP384,
-		TypeEcdsaP521:  EcdsaP521,
-		TypeRsa1024:    Rsa1024,
-		TypeRsa2048:    Rsa2048,
-		TypeRsa4096:    Rsa4096,
+		TypeHmacSha256:   HmacSha256,
+		TypeHmacSha512:   HmacSha512,
+		TypePbkdf2Sha256: Pbkdf2Sha256,
+		TypePbkdf2Sha512: Pbkdf2Sha512,
+
+		TypeAesCbc128: AesCbc128,
+		TypeAesCbc192: AesCbc192,
+		TypeAesCbc256: AesCbc256,
+		TypeAesGcm128: AesGcm128,
+		TypeAesGcm192: AesGcm192,
+		TypeAesGcm256: AesGcm256,
+
+		TypeEcdsaP256: EcdsaP256,
+		TypeEcdsaP384: EcdsaP384,
+		TypeEcdsaP521: EcdsaP521,
+		TypeRsa1024:   Rsa1024,
+		TypeRsa2048:   Rsa2048,
+		TypeRsa4096:   Rsa4096,
 	}
 
 	algorithmsType = map[Algorithm]AlgorithmType{
-		HmacSha256: TypeHmacSha256,
-		HmacSha512: TypeHmacSha512,
-		AesCbc128:  TypeAesCbc128,
-		AesCbc192:  TypeAesCbc192,
-		AesCbc256:  TypeAesCbc256,
-		AesGcm128:  TypeAesGcm128,
-		AesGcm192:  TypeAesGcm192,
-		AesGcm256:  TypeAesGcm256,
-		EcdsaP256:  TypeEcdsaP256,
-		EcdsaP384:  TypeEcdsaP384,
-		EcdsaP521:  TypeEcdsaP521,
-		Rsa1024:    TypeRsa1024,
-		Rsa2048:    TypeRsa2048,
-		Rsa4096:    TypeRsa4096,
+		HmacSha256:   TypeHmacSha256,
+		HmacSha512:   TypeHmacSha512,
+		Pbkdf2Sha256: TypePbkdf2Sha256,
+		Pbkdf2Sha512: TypePbkdf2Sha512,
+
+		AesCbc128: TypeAesCbc128,
+		AesCbc192: TypeAesCbc192,
+		AesCbc256: TypeAesCbc256,
+		AesGcm128: TypeAesGcm128,
+		AesGcm192: TypeAesGcm192,
+		AesGcm256: TypeAesGcm256,
+
+		EcdsaP256: TypeEcdsaP256,
+		EcdsaP384: TypeEcdsaP384,
+		EcdsaP521: TypeEcdsaP521,
+
+		Rsa1024: TypeRsa1024,
+		Rsa2048: TypeRsa2048,
+		Rsa4096: TypeRsa4096,
 	}
 )
 

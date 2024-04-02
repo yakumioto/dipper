@@ -16,6 +16,9 @@ type Key[T types.DataType] interface {
 	Decrypt(ciphertext T) (plaintext T, err error)
 }
 
+// Option is a function type that represents an option for a key.
+type Option[T types.DataType] func(Key[T]) error
+
 // Generator is an interface that represents a cryptographic key generator.
 // It provides a method for generating a key based on a given algorithm.
 type Generator[T types.DataType] interface {

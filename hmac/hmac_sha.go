@@ -2,9 +2,9 @@ package hmac
 
 import (
 	"bytes"
+	"crypto/hmac"
 	"crypto/sha256"
 	"crypto/sha512"
-	"crypto/subtle"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -111,11 +111,11 @@ func (h *ShaKeyImpl[T]) Verify(msg, signature T) (bool, error) {
 
 	digest := h2.Sum(nil)
 
-	if subtle.ConstantTimeCompare(digest, providedDigest) == 0 {
+	if !bytes.Equal(digest, providedDigest) {
 		return false, fmt.Errorf("hmac-sha: invalid digest")
 	}
 
-	return subtle.ConstantTimeCompare(h.sum(digest), providedSignature) == 1, nil
+	return hmac.Equal(h.sum(digest), providedSignature), nil
 }
 
 func (h *ShaKeyImpl[T]) Encrypt(_ T) (T, error) {
