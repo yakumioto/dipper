@@ -1,6 +1,12 @@
-package crypto
+package types
 
-type Algorithm int
+// DataType is an interface that represents the data type of a cryptographic key.
+// It can be either a byte slice or a string.
+type DataType interface {
+	~[]byte | ~string
+}
+
+type Algorithm = int
 
 type AlgorithmType string
 
@@ -40,12 +46,14 @@ const (
 const (
 	EcdsaP256 Algorithm = iota + AsymmetricType + 1
 	EcdsaP384
+	EcdsaP521
 	Rsa1024
 	Rsa2048
 	Rsa4096
 
 	TypeEcdsaP256 AlgorithmType = "ECDSA_P256"
 	TypeEcdsaP384 AlgorithmType = "ECDSA_P384"
+	TypeEcdsaP521 AlgorithmType = "ECDSA_P521"
 	TypeRsa1024   AlgorithmType = "RSA_1024"
 	TypeRsa2048   AlgorithmType = "RSA_2048"
 	TypeRsa4096   AlgorithmType = "RSA_4096"
@@ -63,6 +71,7 @@ var (
 		TypeAesGcm256:  AesGcm256,
 		TypeEcdsaP256:  EcdsaP256,
 		TypeEcdsaP384:  EcdsaP384,
+		TypeEcdsaP521:  EcdsaP521,
 		TypeRsa1024:    Rsa1024,
 		TypeRsa2048:    Rsa2048,
 		TypeRsa4096:    Rsa4096,
@@ -79,6 +88,7 @@ var (
 		AesGcm256:  TypeAesGcm256,
 		EcdsaP256:  TypeEcdsaP256,
 		EcdsaP384:  TypeEcdsaP384,
+		EcdsaP521:  TypeEcdsaP521,
 		Rsa1024:    TypeRsa1024,
 		Rsa2048:    TypeRsa2048,
 		Rsa4096:    TypeRsa4096,

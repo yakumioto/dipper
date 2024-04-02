@@ -13,7 +13,7 @@ A fast, easy-to-use, and convenient encryption library for Go, utilizing a unifi
 
 Based on Go's generic features, it supports `[]byte` and `string`.
 
-Unified ciphertext format: {algorithm identifier}.{ciphertext}, {algorithm identifier}.{signature}, {algorithm identifier}.{ciphertext}.{signature}.
+Unified ciphertext format: {algorithm identifier}.{ciphertext}, {algorithm identifier}.{message digest}.{signature}, {algorithm identifier}.{ciphertext}.{signature}.
 
 - Supports symmetric keys
   - AES CBC (128-bit, 192-bit, 256-bit)

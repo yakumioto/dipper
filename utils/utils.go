@@ -1,21 +1,21 @@
-package crypto
+package utils
 
 import (
 	"bytes"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
 	"errors"
-	"strings"
+
+	"golang.org/x/crypto/pbkdf2"
+
+	"github.com/yakumioto/go-crypto-suite/types"
 )
 
-type randomSizeFunc func(len int) ([]byte, error)
+type RandomSizeFunc func(len int) ([]byte, error)
 
 var (
-	ErrEmptyKey          = errors.New("key cannot be empty")
-	ErrUnsupportedKey    = errors.New("unsupported key type, only string or []byte keys are allowed")
-	ErrUnsupportedMethod = errors.New("this method is not applicable for the given key type")
-
-	RandomSize randomSizeFunc = func(len int) ([]byte, error) {
+	RandomSize RandomSizeFunc = func(len int) ([]byte, error) {
 		iv := make([]byte, len)
 		if _, err := rand.Read(iv); err != nil {
 			return nil, err
@@ -25,24 +25,28 @@ var (
 	}
 )
 
-func checkAndConvertKey(key interface{}) ([]byte, error) {
+func ExtendKey(key []byte, keyLen int) []byte {
+	return pbkdf2.Key(key, nil, 1, keyLen, sha256.New)
+}
+
+func ToKeyBytes(key interface{}) ([]byte, error) {
 	switch key := key.(type) {
 	case []byte:
 		if len(key) == 0 {
-			return nil, ErrEmptyKey
+			return nil, errors.New("empty key bytes")
 		}
 		return key, nil
 	case string:
 		if key == "" {
-			return nil, ErrEmptyKey
+			return nil, errors.New("empty key string")
 		}
 		return []byte(key), nil
 	default:
-		return nil, ErrUnsupportedKey
+		return nil, errors.New("key type not supported")
 	}
 }
 
-func toString[T DataType](b T) string {
+func ToString[T types.DataType](b T) string {
 	switch b := any(b).(type) {
 	case []byte:
 		return string(b)
@@ -53,7 +57,7 @@ func toString[T DataType](b T) string {
 	return ""
 }
 
-func toHexString[T DataType](b T) string {
+func ToHexString[T types.DataType](b T) string {
 	switch b := any(b).(type) {
 	case []byte:
 		return hex.EncodeToString(b)
@@ -64,7 +68,7 @@ func toHexString[T DataType](b T) string {
 	return ""
 }
 
-func toBytes[T DataType](s T) []byte {
+func ToBytes[T types.DataType](s T) []byte {
 	switch b := any(s).(type) {
 	case []byte:
 		return b
@@ -75,8 +79,8 @@ func toBytes[T DataType](s T) []byte {
 	return nil
 }
 
-func pkcs7Padding[T DataType](src T, blockSize int) []byte {
-	srcBytes := toBytes[T](src)
+func Pkcs7Padding[T types.DataType](src T, blockSize int) []byte {
+	srcBytes := ToBytes[T](src)
 	paddingSize := blockSize - len(srcBytes)%blockSize
 
 	paddingText := bytes.Repeat([]byte{byte(paddingSize)}, paddingSize)
@@ -87,10 +91,10 @@ func pkcs7Padding[T DataType](src T, blockSize int) []byte {
 	return paddedData
 }
 
-func pkcs7UnPadding[T DataType](src T) (T, error) {
-	srcBytes := toBytes[T](src)
+func Pkcs7UnPadding[T types.DataType](src T) (T, error) {
+	srcBytes := ToBytes[T](src)
 	if len(srcBytes) == 0 {
-		return T(""), errors.New("source cannot be empty")
+		return T(""), errors.New("cannot be empty")
 	}
 
 	paddingSize := int(srcBytes[len(srcBytes)-1])
@@ -106,15 +110,4 @@ func pkcs7UnPadding[T DataType](src T) (T, error) {
 	}
 
 	return T(srcBytes[:len(srcBytes)-paddingSize]), nil
-}
-
-func splitN[T DataType](s, sep T, n int) []T {
-	switch s := any(s).(type) {
-	case string:
-		return any(strings.SplitN(s, any(sep).(string), n)).([]T)
-	case []byte:
-		return any(bytes.SplitN(s, any(sep).([]byte), n)).([]T)
-	default:
-		panic("Unsupported type")
-	}
 }
