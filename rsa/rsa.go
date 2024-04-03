@@ -11,7 +11,6 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/yakumioto/go-crypto-suite/key"
@@ -28,11 +27,11 @@ type PrivateKeyImpl[T types.DataType] struct {
 	privateKey *rsa.PrivateKey
 }
 
-func (r *PrivateKeyImpl[T]) AlgorithmType() types.AlgorithmType {
-	return types.GetTypeByAlgorithm(r.algorithm)
+func (r *PrivateKeyImpl[T]) Algorithm() types.Algorithm {
+	return r.algorithm
 }
 
-func (r *PrivateKeyImpl[T]) Bytes() (T, error) {
+func (r *PrivateKeyImpl[T]) Export() (T, error) {
 	pkcs1Encoded := x509.MarshalPKCS1PrivateKey(r.privateKey)
 	if pkcs1Encoded == nil {
 		return T(""), errors.New("rsa: failed to marshal private key")
@@ -72,7 +71,7 @@ func (r *PrivateKeyImpl[T]) Sign(msg T) (T, error) {
 	}
 
 	data := bytes.NewBuffer(nil)
-	data.WriteString(strconv.Itoa(int(r.algorithm)))
+	data.WriteString(r.algorithm)
 	data.WriteString(".")
 	data.WriteString(base64.RawStdEncoding.EncodeToString(digest))
 	data.WriteString(".")
@@ -96,15 +95,10 @@ func (r *PrivateKeyImpl[T]) Decrypt(ciphertext T) (T, error) {
 		return T(""), errors.New("rsa: invalid encrypted data structure")
 	}
 
-	algorithmType, payload := parts[0], parts[1]
-
-	algorithm, err := strconv.Atoi(algorithmType)
-	if err != nil {
-		return T(""), errors.New("rsa: algorithm type is not a number")
-	}
+	algorithm, payload := parts[0], parts[1]
 
 	if algorithm != r.algorithm {
-		return T(""), fmt.Errorf("rsa: invalid algorithm type: %s", types.GetTypeByAlgorithm(algorithm))
+		return T(""), fmt.Errorf("rsa: invalid algorithm type: %s", algorithm)
 	}
 
 	encryptedData, err := base64.RawStdEncoding.DecodeString(payload)
@@ -125,11 +119,11 @@ type PublicKeyImpl[T types.DataType] struct {
 	publicKey *rsa.PublicKey
 }
 
-func (r *PublicKeyImpl[T]) AlgorithmType() types.AlgorithmType {
-	return types.GetTypeByAlgorithm(r.algorithm)
+func (r *PublicKeyImpl[T]) Algorithm() types.Algorithm {
+	return r.algorithm
 }
 
-func (r *PublicKeyImpl[T]) Bytes() (T, error) {
+func (r *PublicKeyImpl[T]) Export() (T, error) {
 	pkcs1Encoded := x509.MarshalPKCS1PublicKey(r.publicKey)
 	return T(pem.EncodeToMemory(&pem.Block{
 		Type:  "PUBLIC KEY",
@@ -159,15 +153,10 @@ func (r *PublicKeyImpl[T]) Verify(msg, signature T) (bool, error) {
 		return false, errors.New("rsa: invalid signature data structure")
 	}
 
-	algorithmType, encodedDigest, encodedSignature := parts[0], parts[1], parts[2]
-
-	algorithm, err := strconv.Atoi(algorithmType)
-	if err != nil {
-		return false, errors.New("rsa: algorithm type is not a number")
-	}
+	algorithm, encodedDigest, encodedSignature := parts[0], parts[1], parts[2]
 
 	if algorithm != r.algorithm {
-		return false, fmt.Errorf("rsa: invalid algorithm type: %s", types.GetTypeByAlgorithm(algorithm))
+		return false, fmt.Errorf("rsa: invalid algorithm type: %s", algorithm)
 	}
 
 	providedDigest, err := base64.RawStdEncoding.DecodeString(encodedDigest)
@@ -206,7 +195,7 @@ func (r *PublicKeyImpl[T]) Encrypt(plaintext T) (T, error) {
 	}
 
 	data := bytes.NewBuffer(nil)
-	data.WriteString(strconv.Itoa(r.algorithm))
+	data.WriteString(r.algorithm)
 	data.WriteString(".")
 	data.WriteString(base64.RawStdEncoding.EncodeToString(payload))
 
@@ -219,7 +208,7 @@ func (r *PublicKeyImpl[T]) Decrypt(_ T) (T, error) {
 
 type KeyGeneratorImpl[T types.DataType] struct{}
 
-func (r *KeyGeneratorImpl[T]) KeyGen(alg types.Algorithm) (key.Key[T], error) {
+func (r *KeyGeneratorImpl[T]) KeyGen(alg types.Algorithm, opts ...key.Option[T]) (key.Key[T], error) {
 	var bits int
 
 	switch alg {
@@ -230,7 +219,7 @@ func (r *KeyGeneratorImpl[T]) KeyGen(alg types.Algorithm) (key.Key[T], error) {
 	case types.Rsa4096:
 		bits = 4096
 	default:
-		return nil, fmt.Errorf("rsa: invalid algorithm: %v", types.GetTypeByAlgorithm(alg))
+		return nil, fmt.Errorf("rsa: invalid algorithm: %v", alg)
 	}
 
 	privateKey, err := rsa.GenerateKey(rand.Reader, bits)
@@ -246,7 +235,7 @@ func (r *KeyGeneratorImpl[T]) KeyGen(alg types.Algorithm) (key.Key[T], error) {
 
 type KeyImportImpl[T types.DataType] struct{}
 
-func (r *KeyImportImpl[T]) KeyImport(raw interface{}, alg types.Algorithm) (key.Key[T], error) {
+func (r *KeyImportImpl[T]) KeyImport(raw interface{}, alg types.Algorithm, opts ...key.Option[T]) (key.Key[T], error) {
 	data, err := utils.ToKeyBytes(raw)
 	if err != nil {
 		return nil, err

@@ -8,7 +8,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/yakumioto/go-crypto-suite/key"
@@ -25,11 +24,11 @@ type CbcKeyImpl[T types.DataType] struct {
 	algorithm types.Algorithm
 }
 
-func (a *CbcKeyImpl[T]) AlgorithmType() types.AlgorithmType {
-	return types.GetTypeByAlgorithm(a.algorithm)
+func (a *CbcKeyImpl[T]) Algorithm() types.Algorithm {
+	return a.algorithm
 }
 
-func (a *CbcKeyImpl[T]) Bytes() (key T, err error) {
+func (a *CbcKeyImpl[T]) Export() (key T, err error) {
 	return T(a.key), nil
 }
 
@@ -74,7 +73,7 @@ func (a *CbcKeyImpl[T]) Encrypt(plaintext T) (T, error) {
 	payload = append(payload, dst...)
 
 	data := bytes.NewBuffer(nil)
-	data.WriteString(strconv.Itoa(a.algorithm))
+	data.WriteString(a.algorithm)
 	data.WriteString(".")
 	data.WriteString(base64.RawStdEncoding.EncodeToString(payload))
 
@@ -88,15 +87,10 @@ func (a *CbcKeyImpl[T]) Decrypt(ciphertext T) (T, error) {
 		return T(""), errors.New("aes-cbc: invalid encrypted data structure")
 	}
 
-	algorithmType, payload := parts[0], parts[1]
-
-	algorithm, err := strconv.Atoi(algorithmType)
-	if err != nil {
-		return T(""), errors.New("aes-cbc: algorithm type is not a number")
-	}
+	algorithm, payload := parts[0], parts[1]
 
 	if algorithm != a.algorithm {
-		return T(""), fmt.Errorf("aes-cbc: invalid algorithm type: %s", types.GetTypeByAlgorithm(algorithm))
+		return T(""), fmt.Errorf("aes-cbc: invalid algorithm type: %s", algorithm)
 	}
 
 	encryptedPayload, err := base64.RawStdEncoding.DecodeString(payload)
@@ -132,11 +126,11 @@ type GcmKeyImpl[T types.DataType] struct {
 	algorithm types.Algorithm
 }
 
-func (a *GcmKeyImpl[T]) AlgorithmType() types.AlgorithmType {
-	return types.GetTypeByAlgorithm(a.algorithm)
+func (a *GcmKeyImpl[T]) Algorithm() types.Algorithm {
+	return a.algorithm
 }
 
-func (a *GcmKeyImpl[T]) Bytes() (key T, err error) {
+func (a *GcmKeyImpl[T]) Export() (key T, err error) {
 	return T(a.key), nil
 }
 
@@ -181,10 +175,10 @@ func (a *GcmKeyImpl[T]) Encrypt(plaintext T) (T, error) {
 	payload = append(payload, nonce...)
 	payload = append(payload, sealedData...)
 
-	data := bytes.NewBufferString(strconv.Itoa(a.algorithm) + ".")
-	if _, err := data.WriteString(base64.RawStdEncoding.EncodeToString(payload)); err != nil {
-		return T(""), fmt.Errorf("aes-gcm: failed to encode payload: %w", err)
-	}
+	data := bytes.NewBuffer(nil)
+	data.WriteString(a.algorithm)
+	data.WriteString(".")
+	data.WriteString(base64.RawStdEncoding.EncodeToString(payload))
 
 	return T(data.Bytes()), nil
 }
@@ -197,15 +191,10 @@ func (a *GcmKeyImpl[T]) Decrypt(ciphertext T) (T, error) {
 		return T(""), errors.New("aes-gcm: invalid encrypted data structure")
 	}
 
-	algorithmType, payload := parts[0], parts[1]
-
-	algorithm, err := strconv.Atoi(algorithmType)
-	if err != nil {
-		return T(""), errors.New("aes-gcm: algorithm type is not a number")
-	}
+	algorithm, payload := parts[0], parts[1]
 
 	if algorithm != a.algorithm {
-		return T(""), fmt.Errorf("aes-gcm: invalid algorithm type: %s", types.GetTypeByAlgorithm(algorithm))
+		return T(""), fmt.Errorf("aes-gcm: invalid algorithm type: %s", algorithm)
 	}
 
 	encryptedPayload, err := base64.RawStdEncoding.DecodeString(payload)
@@ -239,7 +228,7 @@ func (a *GcmKeyImpl[T]) Decrypt(ciphertext T) (T, error) {
 
 type KeyImportImpl[T types.DataType] struct{}
 
-func (a *KeyImportImpl[T]) KeyImport(raw interface{}, alg types.Algorithm) (key.Key[T], error) {
+func (a *KeyImportImpl[T]) KeyImport(raw interface{}, alg types.Algorithm, opts ...key.Option[T]) (key.Key[T], error) {
 	keyBytes, err := utils.ToKeyBytes(raw)
 	if err != nil {
 		return nil, fmt.Errorf("aes: key import failed to convert key: %w", err)
@@ -254,7 +243,7 @@ func (a *KeyImportImpl[T]) KeyImport(raw interface{}, alg types.Algorithm) (key.
 	case types.AesCbc256, types.AesGcm256:
 		keyLen = 256 / 8
 	default:
-		return nil, fmt.Errorf("aes: invalid algorithm: %v", types.GetTypeByAlgorithm(alg))
+		return nil, fmt.Errorf("aes: invalid algorithm: %v", alg)
 	}
 
 	extendKey := utils.ExtendKey(keyBytes, keyLen)

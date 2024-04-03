@@ -31,39 +31,40 @@ type KeyImpl[T types.DataType] struct {
 	digestFunc func() hash.Hash
 }
 
-func WithIterations[T types.DataType](iterations int) func(key key.Key[T]) error {
+func WithIterations[T types.DataType](iterations int) key.Option[T] {
 	return func(k key.Key[T]) error {
-		_, ok := k.(*KeyImpl[T])
-		if !ok {
-			return errors.New("pbkdf2: invalid key type")
-		}
+		if _, ok := k.(*KeyImpl[T]); ok {
+			if iterations <= 0 {
+				return nil
+			}
 
-		if iterations <= 0 {
+			k.(*KeyImpl[T]).iterations = iterations
 			return nil
 		}
-
-		k.(*KeyImpl[T]).iterations = iterations
-		return nil
+		return errors.New("pbkdf2: invalid key type")
 	}
 }
 
-// func WithSaltSize[T types.DataType](saltSize int) key.Option[T] {
-// 	return func(k key.Key[T]) error {
-// 		ak, ok := k.(*KeyImpl[T])
-// 		if !ok {
-// 			return errors.New("pbkdf2: invalid key type")
-// 		}
-//
-// 		ak.saltSize = saltSize
-// 		return nil
-// 	}
-// }
+func WithSaltSize[T types.DataType](saltSize int) key.Option[T] {
+	return func(k key.Key[T]) error {
+		if _, ok := k.(*KeyImpl[T]); ok {
+			if saltSize <= 0 {
+				return nil
+			}
 
-func (k *KeyImpl[T]) AlgorithmType() types.AlgorithmType {
-	return types.GetTypeByAlgorithm(k.algorithm)
+			k.(*KeyImpl[T]).saltSize = saltSize
+			return nil
+		}
+
+		return errors.New("pbkdf2: invalid key type")
+	}
 }
 
-func (k *KeyImpl[T]) Bytes() (key T, err error) {
+func (k *KeyImpl[T]) Algorithm() types.Algorithm {
+	return k.algorithm
+}
+
+func (k *KeyImpl[T]) Export() (key T, err error) {
 	return T(""), ErrUnsupportedMethod
 }
 
@@ -90,7 +91,7 @@ func (k *KeyImpl[T]) Sign(msg T) (signature T, err error) {
 	)
 
 	data := bytes.NewBuffer(nil)
-	data.WriteString(strconv.Itoa(k.algorithm))
+	data.WriteString(k.algorithm)
 	data.WriteString(".")
 	data.WriteString(payload)
 
@@ -105,15 +106,10 @@ func (k *KeyImpl[T]) Verify(msg, signature T) (bool, error) {
 		return false, errors.New("pbkdf2: invalid signature data structure")
 	}
 
-	algorithmType, encodedSignature := parts[0], parts[1]
-
-	algorithm, err := strconv.Atoi(algorithmType)
-	if err != nil {
-		return false, errors.New("pbkdf2: algorithm type is not a number")
-	}
+	algorithm, encodedSignature := parts[0], parts[1]
 
 	if algorithm != k.algorithm {
-		return false, fmt.Errorf("pbkdf2: invalid algorithm type: %s", types.GetTypeByAlgorithm(algorithm))
+		return false, fmt.Errorf("pbkdf2: invalid algorithm type: %s", algorithm)
 	}
 
 	parts = strings.SplitN(encodedSignature, "$", 3)
@@ -170,12 +166,14 @@ func (k *KeyGeneratorImpl[T]) KeyGen(alg types.Algorithm, opts ...key.Option[T])
 	case types.Pbkdf2Sha256:
 		ki.digestFunc = sha256.New
 		ki.keyLen = sha256.Size
+
 		return ki, nil
 	case types.Pbkdf2Sha512:
 		ki.digestFunc = sha512.New
 		ki.keyLen = sha512.Size
+
 		return ki, nil
 	default:
-		return nil, fmt.Errorf("pbkdf2: invalid algorithm: %v", types.GetTypeByAlgorithm(alg))
+		return nil, fmt.Errorf("pbkdf2: invalid algorithm: %v", alg)
 	}
 }

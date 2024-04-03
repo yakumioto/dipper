@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"hash"
-	"strconv"
 	"strings"
 	"sync"
 
@@ -38,11 +37,11 @@ func (h *ShaKeyImpl[T]) sum(msg []byte) []byte {
 	return h.h.Sum(nil)
 }
 
-func (h *ShaKeyImpl[T]) AlgorithmType() types.AlgorithmType {
-	return types.GetTypeByAlgorithm(h.algorithm)
+func (h *ShaKeyImpl[T]) Algorithm() types.Algorithm {
+	return h.algorithm
 }
 
-func (h *ShaKeyImpl[T]) Bytes() (T, error) {
+func (h *ShaKeyImpl[T]) Export() (T, error) {
 	return T(h.key), nil
 }
 
@@ -66,7 +65,7 @@ func (h *ShaKeyImpl[T]) Sign(msg T) (signature T, err error) {
 	digest := h2.Sum(nil)
 
 	data := bytes.NewBuffer(nil)
-	data.WriteString(strconv.Itoa(h.algorithm))
+	data.WriteString(h.algorithm)
 	data.WriteString(".")
 	data.WriteString(base64.RawStdEncoding.EncodeToString(digest))
 	data.WriteString(".")
@@ -83,15 +82,10 @@ func (h *ShaKeyImpl[T]) Verify(msg, signature T) (bool, error) {
 		return false, errors.New("hmac-sha: invalid signature data structure")
 	}
 
-	algorithmType, encodedDigest, encodedSignature := parts[0], parts[1], parts[2]
-
-	algorithm, err := strconv.Atoi(algorithmType)
-	if err != nil {
-		return false, errors.New("hmac-sha: algorithm type is not a number")
-	}
+	algorithm, encodedDigest, encodedSignature := parts[0], parts[1], parts[2]
 
 	if algorithm != h.algorithm {
-		return false, fmt.Errorf("hmac-sha: invalid algorithm type: %s", types.GetTypeByAlgorithm(algorithm))
+		return false, fmt.Errorf("hmac-sha: invalid algorithm type: %s", algorithm)
 	}
 
 	providedDigest, err := base64.RawStdEncoding.DecodeString(encodedDigest)
@@ -128,8 +122,8 @@ func (h *ShaKeyImpl[T]) Decrypt(_ T) (T, error) {
 
 type ShaKeyImportImpl[T types.DataType] struct{}
 
-func (h *ShaKeyImportImpl[T]) KeyImport(raw interface{}, alg types.Algorithm) (key.Key[T], error) {
-	key, err := utils.ToKeyBytes(raw)
+func (h *ShaKeyImportImpl[T]) KeyImport(raw interface{}, alg types.Algorithm, opts ...key.Option[T]) (key.Key[T], error) {
+	keyBytes, err := utils.ToKeyBytes(raw)
 	if err != nil {
 		return nil, err
 	}
@@ -137,17 +131,17 @@ func (h *ShaKeyImportImpl[T]) KeyImport(raw interface{}, alg types.Algorithm) (k
 	switch alg {
 	case types.HmacSha256:
 		return &ShaKeyImpl[T]{
-			key:       key,
+			key:       keyBytes,
 			h:         sha256.New(),
 			algorithm: alg,
 		}, nil
 	case types.HmacSha512:
 		return &ShaKeyImpl[T]{
-			key:       key,
+			key:       keyBytes,
 			h:         sha512.New(),
 			algorithm: alg,
 		}, nil
 	default:
-		return nil, fmt.Errorf("hmac-sha: unsupported algorithm: %v", types.GetTypeByAlgorithm(alg))
+		return nil, fmt.Errorf("hmac-sha: unsupported algorithm: %v", alg)
 	}
 }

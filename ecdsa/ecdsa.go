@@ -13,7 +13,6 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/yakumioto/go-crypto-suite/key"
@@ -30,11 +29,11 @@ type PrivateKey[T types.DataType] struct {
 	algorithm  types.Algorithm
 }
 
-func (e *PrivateKey[T]) AlgorithmType() types.AlgorithmType {
-	return types.GetTypeByAlgorithm(e.algorithm)
+func (e *PrivateKey[T]) Algorithm() types.Algorithm {
+	return e.algorithm
 }
 
-func (e *PrivateKey[T]) Bytes() (key T, err error) {
+func (e *PrivateKey[T]) Export() (key T, err error) {
 	pkcs8Encoded, err := x509.MarshalPKCS8PrivateKey(e.privateKey)
 	if err != nil {
 		return T(""), fmt.Errorf("ecdsa: failed to marshal private pubKey: %w", err)
@@ -67,7 +66,7 @@ func (e *PrivateKey[T]) Sign(msg T) (signature T, err error) {
 	}
 
 	data := bytes.NewBuffer(nil)
-	data.WriteString(strconv.Itoa(e.algorithm))
+	data.WriteString(e.algorithm)
 	data.WriteString(".")
 	data.WriteString(base64.RawStdEncoding.EncodeToString(digest))
 	data.WriteString(".")
@@ -94,11 +93,11 @@ type PublicKey[T types.DataType] struct {
 	algorithm types.Algorithm
 }
 
-func (e *PublicKey[T]) AlgorithmType() types.AlgorithmType {
-	return types.GetTypeByAlgorithm(e.algorithm)
+func (e *PublicKey[T]) Algorithm() types.Algorithm {
+	return e.algorithm
 }
 
-func (e *PublicKey[T]) Bytes() (key T, err error) {
+func (e *PublicKey[T]) Export() (key T, err error) {
 	pkcs8Encoded, err := x509.MarshalPKIXPublicKey(e.publicKey)
 	if err != nil {
 		return T(""), fmt.Errorf("ecdsa: failed to marshal public pubKey: %w", err)
@@ -130,15 +129,10 @@ func (e *PublicKey[T]) Verify(msg, signature T) (bool, error) {
 		return false, errors.New("ecdsa: invalid signature data structure")
 	}
 
-	algorithmType, encodedDigest, encodedSignature := parts[0], parts[1], parts[2]
-
-	algorithm, err := strconv.Atoi(algorithmType)
-	if err != nil {
-		return false, errors.New("ecdsa: algorithm type is not a number")
-	}
+	algorithm, encodedDigest, encodedSignature := parts[0], parts[1], parts[2]
 
 	if algorithm != e.algorithm {
-		return false, fmt.Errorf("ecdsa: invalid algorithm type: %s", types.GetTypeByAlgorithm(algorithm))
+		return false, fmt.Errorf("ecdsa: invalid algorithm type: %s", algorithm)
 	}
 
 	providedDigest, err := base64.RawStdEncoding.DecodeString(encodedDigest)
@@ -178,7 +172,7 @@ func (e *PublicKey[T]) Decrypt(_ T) (T, error) {
 
 type KeyGeneratorImpl[T types.DataType] struct{}
 
-func (e *KeyGeneratorImpl[T]) KeyGen(alg types.Algorithm) (key.Key[T], error) {
+func (e *KeyGeneratorImpl[T]) KeyGen(alg types.Algorithm, opts ...key.Option[T]) (key.Key[T], error) {
 	var curve elliptic.Curve
 	switch alg {
 	case types.EcdsaP256:
@@ -188,7 +182,7 @@ func (e *KeyGeneratorImpl[T]) KeyGen(alg types.Algorithm) (key.Key[T], error) {
 	case types.EcdsaP521:
 		curve = elliptic.P521()
 	default:
-		return nil, fmt.Errorf("ecdsa: invalid algorithm: %v", types.GetTypeByAlgorithm(alg))
+		return nil, fmt.Errorf("ecdsa: invalid algorithm: %v", alg)
 	}
 
 	privateKey, err := ecdsa.GenerateKey(curve, rand.Reader)
@@ -204,7 +198,7 @@ func (e *KeyGeneratorImpl[T]) KeyGen(alg types.Algorithm) (key.Key[T], error) {
 
 type KeyImportImpl[T types.DataType] struct{}
 
-func (e *KeyImportImpl[T]) KeyImport(raw interface{}, alg types.Algorithm) (key.Key[T], error) {
+func (e *KeyImportImpl[T]) KeyImport(raw interface{}, alg types.Algorithm, opts ...key.Option[T]) (key.Key[T], error) {
 	keyBytes, err := utils.ToKeyBytes(raw)
 	if err != nil {
 		return nil, err

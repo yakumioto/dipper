@@ -99,8 +99,8 @@ func TestKeyImport(t *testing.T) {
 		privKey, err := kg.KeyGen(tc.algorithm)
 		assert.NoErrorf(t, err, "KeyGen failed: %s", err)
 
-		privKeyStr, err := privKey.Bytes()
-		assert.NoErrorf(t, err, "Bytes failed: %s", err)
+		privKeyStr, err := privKey.Export()
+		assert.NoErrorf(t, err, "Export failed: %s", err)
 
 		ki := new(KeyImportImpl[string])
 
@@ -110,8 +110,8 @@ func TestKeyImport(t *testing.T) {
 		pubKey, err := privKey.PublicKey()
 		assert.NoErrorf(t, err, "PublicKey failed: %s", err)
 
-		pubKeyStr, err := pubKey.Bytes()
-		assert.NoErrorf(t, err, "Bytes failed: %s", err)
+		pubKeyStr, err := pubKey.Export()
+		assert.NoErrorf(t, err, "Export failed: %s", err)
 
 		pubKey, err = ki.KeyImport(pubKeyStr, tc.algorithm)
 		assert.NoErrorf(t, err, "KeyImport failed: %s", err)
