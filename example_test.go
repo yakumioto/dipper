@@ -16,7 +16,7 @@ func ExampleKeyImport() {
 		return b, nil
 	}
 
-	key, err := KeyImport[string]("123456", types.AesCbc128)
+	key, err := KeyImport[string](types.AesCbc128, "123456")
 	if err != nil {
 		panic(err)
 	}
@@ -33,6 +33,6 @@ func ExampleKeyImport() {
 	}
 	fmt.Println(plaintext)
 	// Output:
-	// 201.YWFhYWFhYWFhYWFhYWFhYWv1wt6aTe92jzFCoVBvNYU
+	// aes_cbc_128.YWFhYWFhYWFhYWFhYWFhYWv1wt6aTe92jzFCoVBvNYU
 	// hello world
 }
