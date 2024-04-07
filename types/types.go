@@ -25,6 +25,8 @@ const (
 	AesGcm128 Algorithm = "aes_gcm_128"
 	AesGcm192 Algorithm = "aes_gcm_192"
 	AesGcm256 Algorithm = "aes_gcm_256"
+	Chacha20  Algorithm = "chacha20"
+	XChacha20 Algorithm = "x_chacha20"
 )
 
 // asymmetric algorithms type
