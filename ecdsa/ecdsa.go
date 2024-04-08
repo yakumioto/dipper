@@ -10,6 +10,7 @@ import (
 	"crypto/subtle"
 	"crypto/x509"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -110,11 +111,11 @@ func (e *PublicKey[T]) SKI() T {
 
 	hash := sha256.New()
 	hash.Write(raw)
-	return T(hash.Sum(nil))
+	return T(hex.EncodeToString(hash.Sum(nil)))
 }
 
 func (e *PublicKey[T]) PublicKey() (key.Key[T], error) {
-	return e, nil
+	return e, ErrUnsupportedMethod
 }
 
 func (e *PublicKey[T]) Sign(_ T) (T, error) {

@@ -8,6 +8,7 @@ import (
 	"crypto/sha256"
 	"crypto/x509"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -81,7 +82,7 @@ func (r *PrivateKeyImpl[T]) Sign(msg T) (T, error) {
 }
 
 func (r *PrivateKeyImpl[T]) Verify(_, _ T) (bool, error) {
-	return false, nil
+	return false, ErrUnsupportedMethod
 }
 
 func (r *PrivateKeyImpl[T]) Encrypt(_ T) (T, error) {
@@ -133,12 +134,15 @@ func (r *PublicKeyImpl[T]) Export() (T, error) {
 
 func (r *PublicKeyImpl[T]) SKI() T {
 	raw := x509.MarshalPKCS1PublicKey(r.publicKey)
-	hash := sha256.Sum256(raw)
-	return T(hash[:])
+
+	h := sha256.New()
+	h.Write(raw)
+
+	return T(hex.EncodeToString(h.Sum(nil)))
 }
 
 func (r *PublicKeyImpl[T]) PublicKey() (key.Key[T], error) {
-	return r, nil
+	return nil, ErrUnsupportedMethod
 }
 
 func (r *PublicKeyImpl[T]) Sign(_ T) (T, error) {
