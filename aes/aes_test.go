@@ -97,14 +97,11 @@ func TestUnsupportedMethod(t *testing.T) {
 		_, err = key.PublicKey()
 		assert.EqualError(t, err, ErrUnsupportedMethod.Error(), "PublicKey failed")
 
-		err = nil
 		_, err = key.Sign("hello world")
 		assert.EqualError(t, err, ErrUnsupportedMethod.Error(), "Sign failed")
 
-		err = nil
 		_, err = key.Verify("hello world", "signature")
 		assert.EqualError(t, err, ErrUnsupportedMethod.Error(), "Verify failed")
-
 	}
 }
 

@@ -8,6 +8,74 @@ import (
 	"github.com/yakumioto/go-crypto-suite/types"
 )
 
+func TestAlgorithm(t *testing.T) {
+	tcs := []struct {
+		algorithm types.Algorithm
+	}{
+		{
+			algorithm: types.Argon2,
+		},
+	}
+
+	for _, tc := range tcs {
+		ki := new(KeyGeneratorImpl[string])
+
+		key, err := ki.KeyGen(tc.algorithm)
+		assert.NoErrorf(t, err, "KeyGen failed: %s", err)
+
+		assert.Equal(t, tc.algorithm, key.Algorithm(), "Algorithm failed")
+	}
+}
+
+func TestSKI(t *testing.T) {
+	tcs := []struct {
+		algorithm types.Algorithm
+	}{
+		{
+			algorithm: types.Argon2,
+		},
+	}
+
+	for _, tc := range tcs {
+		ki := new(KeyGeneratorImpl[string])
+
+		key, err := ki.KeyGen(tc.algorithm)
+		assert.NoErrorf(t, err, "KeyGen failed: %s", err)
+
+		assert.Equal(t, "", key.SKI(), "SKI failed")
+	}
+}
+
+func TestUnsupportedMethod(t *testing.T) {
+	tcs := []struct {
+		algorithm types.Algorithm
+	}{
+		{
+			algorithm: types.Argon2,
+		},
+	}
+
+	for _, tc := range tcs {
+		ki := new(KeyGeneratorImpl[string])
+
+		key, err := ki.KeyGen(tc.algorithm)
+		assert.NoErrorf(t, err, "KeyGen failed: %s", err)
+
+		_, err = key.Export()
+		assert.EqualError(t, err, ErrUnsupportedMethod.Error(), "Export failed")
+
+		_, err = key.PublicKey()
+		assert.EqualError(t, err, ErrUnsupportedMethod.Error(), "PublicKey failed")
+
+		_, err = key.Encrypt("hello world")
+		assert.EqualError(t, err, ErrUnsupportedMethod.Error(), "Sign failed")
+
+		_, err = key.Decrypt("hello world")
+		assert.EqualError(t, err, ErrUnsupportedMethod.Error(), "Verify failed")
+
+	}
+}
+
 func TestSignAndVerify(t *testing.T) {
 	tcs := []struct {
 		algorithm types.Algorithm

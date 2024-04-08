@@ -119,7 +119,7 @@ func (k *KeyImpl[T]) Algorithm() types.Algorithm {
 }
 
 func (k *KeyImpl[T]) Export() (key T, err error) {
-	return T(""), nil
+	return T(""), ErrUnsupportedMethod
 }
 
 func (k *KeyImpl[T]) SKI() T {
