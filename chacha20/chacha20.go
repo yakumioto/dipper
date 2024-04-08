@@ -20,7 +20,8 @@ var (
 )
 
 type KeyImpl[T types.DataType] struct {
-	key       []byte
+	inputKey  []byte
+	expendKey []byte
 	nonceSize int
 	algorithm types.Algorithm
 }
@@ -30,12 +31,12 @@ func (k *KeyImpl[T]) Algorithm() types.Algorithm {
 }
 
 func (k *KeyImpl[T]) Export() (key T, err error) {
-	return T(k.key), nil
+	return T(k.inputKey), nil
 }
 
 func (k *KeyImpl[T]) SKI() T {
 	sha := sha256.New()
-	sha.Write(k.key)
+	sha.Write(k.inputKey)
 
 	return T(utils.ToHexString(sha.Sum(nil)))
 }
@@ -58,7 +59,7 @@ func (k *KeyImpl[T]) Encrypt(plaintext T) (ciphertext T, err error) {
 		return T(""), fmt.Errorf("chacha20: encrypt failed to generate random nonce: %w", err)
 	}
 
-	aead, err := chacha20.NewUnauthenticatedCipher(k.key, nonce)
+	aead, err := chacha20.NewUnauthenticatedCipher(k.expendKey, nonce)
 	if err != nil {
 		return T(""), fmt.Errorf("chacha20: encrypt failed to create cipher: %w", err)
 	}
@@ -103,7 +104,7 @@ func (k *KeyImpl[T]) Decrypt(ciphertext T) (plaintext T, err error) {
 
 	nonce, ciphertextBytes := encryptedPayload[:k.nonceSize], encryptedPayload[k.nonceSize:]
 
-	aead, err := chacha20.NewUnauthenticatedCipher(k.key, nonce)
+	aead, err := chacha20.NewUnauthenticatedCipher(k.expendKey, nonce)
 
 	plaintextBytes := make([]byte, len(ciphertextBytes))
 	aead.XORKeyStream(plaintextBytes, ciphertextBytes)
@@ -132,7 +133,8 @@ func (k *KeyImportImpl[T]) KeyImport(raw interface{}, alg types.Algorithm, opts 
 	extendKey := utils.ExtendKey(keyBytes, chacha20.KeySize)
 
 	return &KeyImpl[T]{
-		key:       extendKey,
+		inputKey:  keyBytes,
+		expendKey: extendKey,
 		nonceSize: nonceSize,
 		algorithm: alg,
 	}, nil

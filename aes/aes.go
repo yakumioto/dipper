@@ -20,7 +20,8 @@ var (
 )
 
 type CbcKeyImpl[T types.DataType] struct {
-	key       []byte
+	inputKey  []byte
+	extendKey []byte
 	algorithm types.Algorithm
 }
 
@@ -29,12 +30,12 @@ func (a *CbcKeyImpl[T]) Algorithm() types.Algorithm {
 }
 
 func (a *CbcKeyImpl[T]) Export() (key T, err error) {
-	return T(a.key), nil
+	return T(a.inputKey), nil
 }
 
 func (a *CbcKeyImpl[T]) SKI() T {
 	sha := sha256.New()
-	sha.Write(a.key)
+	sha.Write(a.inputKey)
 
 	return T(utils.ToHexString(sha.Sum(nil)))
 }
@@ -59,7 +60,7 @@ func (a *CbcKeyImpl[T]) Encrypt(plaintext T) (T, error) {
 		return T(""), fmt.Errorf("aes-cbc: encrypt failed to generate random iv: %w", err)
 	}
 
-	block, err := aes.NewCipher(a.key)
+	block, err := aes.NewCipher(a.extendKey)
 	if err != nil {
 		return T(""), fmt.Errorf("aes-cbc: encrypt failed to create aes cipher: %w", err)
 	}
@@ -105,7 +106,7 @@ func (a *CbcKeyImpl[T]) Decrypt(ciphertext T) (T, error) {
 	iv := encryptedPayload[:aes.BlockSize]
 	ciphertextBytes := encryptedPayload[aes.BlockSize:]
 
-	block, err := aes.NewCipher(a.key)
+	block, err := aes.NewCipher(a.extendKey)
 	if err != nil {
 		return T(""), fmt.Errorf("aes-cbc: cipher creation error: %w", err)
 	}
@@ -122,7 +123,8 @@ func (a *CbcKeyImpl[T]) Decrypt(ciphertext T) (T, error) {
 }
 
 type GcmKeyImpl[T types.DataType] struct {
-	key       []byte
+	inputKey  []byte
+	extendKey []byte
 	algorithm types.Algorithm
 }
 
@@ -131,12 +133,12 @@ func (a *GcmKeyImpl[T]) Algorithm() types.Algorithm {
 }
 
 func (a *GcmKeyImpl[T]) Export() (key T, err error) {
-	return T(a.key), nil
+	return T(a.inputKey), nil
 }
 
 func (a *GcmKeyImpl[T]) SKI() T {
 	sha := sha256.New()
-	sha.Write(a.key)
+	sha.Write(a.inputKey)
 
 	return T(utils.ToHexString(sha.Sum(nil)))
 }
@@ -154,7 +156,7 @@ func (a *GcmKeyImpl[T]) Verify(_, _ T) (bool, error) {
 }
 
 func (a *GcmKeyImpl[T]) Encrypt(plaintext T) (T, error) {
-	block, err := aes.NewCipher(a.key)
+	block, err := aes.NewCipher(a.extendKey)
 	if err != nil {
 		return T(""), fmt.Errorf("aes-gcm: new aes cipher error: %w", err)
 	}
@@ -202,7 +204,7 @@ func (a *GcmKeyImpl[T]) Decrypt(ciphertext T) (T, error) {
 		return T(""), fmt.Errorf("aes-gcm: decrypt failed to decode base64: %w", err)
 	}
 
-	block, err := aes.NewCipher(a.key)
+	block, err := aes.NewCipher(a.extendKey)
 	if err != nil {
 		return T(""), fmt.Errorf("aes-gcm: new aes cipher error: %w", err)
 	}
@@ -250,9 +252,9 @@ func (a *KeyImportImpl[T]) KeyImport(raw interface{}, alg types.Algorithm, opts 
 
 	switch alg {
 	case types.AesCbc128, types.AesCbc192, types.AesCbc256:
-		return &CbcKeyImpl[T]{algorithm: alg, key: extendKey}, nil
+		return &CbcKeyImpl[T]{algorithm: alg, inputKey: keyBytes, extendKey: extendKey}, nil
 	case types.AesGcm128, types.AesGcm192, types.AesGcm256:
-		return &GcmKeyImpl[T]{algorithm: alg, key: extendKey}, nil
+		return &GcmKeyImpl[T]{algorithm: alg, inputKey: keyBytes, extendKey: extendKey}, nil
 	default:
 		panic("unhandled default case")
 	}
