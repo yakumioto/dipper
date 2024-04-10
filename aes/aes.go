@@ -119,7 +119,7 @@ func (a *CbcKeyImpl[T]) Decrypt(ciphertext T) (T, error) {
 	paddedText := make([]byte, len(ciphertextBytes))
 	mode.CryptBlocks(paddedText, ciphertextBytes)
 
-	return utils.Pkcs7UnPadding(T(paddedText))
+	return utils.Pkcs7UnPadding(T(paddedText)), nil
 }
 
 type GcmKeyImpl[T types.DataType] struct {
