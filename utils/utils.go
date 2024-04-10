@@ -58,25 +58,18 @@ func ToString[T types.DataType](b T) string {
 }
 
 func ToHexString[T types.DataType](b T) string {
-	switch b := any(b).(type) {
-	case []byte:
-		return hex.EncodeToString(b)
-	case string:
-		return b
-	}
+	dataBytes := ToBytes(b)
 
-	return ""
+	return hex.EncodeToString(dataBytes)
 }
 
 func ToBytes[T types.DataType](s T) []byte {
 	switch b := any(s).(type) {
-	case []byte:
-		return b
 	case string:
 		return []byte(b)
+	default:
+		return b.([]byte)
 	}
-
-	return nil
 }
 
 func Pkcs7Padding[T types.DataType](src T, blockSize int) []byte {
@@ -91,23 +84,13 @@ func Pkcs7Padding[T types.DataType](src T, blockSize int) []byte {
 	return paddedData
 }
 
-func Pkcs7UnPadding[T types.DataType](src T) (T, error) {
+func Pkcs7UnPadding[T types.DataType](src T) T {
 	srcBytes := ToBytes[T](src)
-	if len(srcBytes) == 0 {
-		return T(""), errors.New("cannot be empty")
+	length := len(srcBytes)
+	if length == 0 {
+		return src
 	}
 
-	paddingSize := int(srcBytes[len(srcBytes)-1])
-	if paddingSize == 0 || paddingSize > len(srcBytes) {
-		return T(""), errors.New("invalid padding size")
-	}
-
-	// Check that all padding bytes are correct
-	for _, padByte := range srcBytes[len(srcBytes)-paddingSize:] {
-		if int(padByte) != paddingSize {
-			return T(""), errors.New("invalid padding")
-		}
-	}
-
-	return T(srcBytes[:len(srcBytes)-paddingSize]), nil
+	unPadding := int(srcBytes[length-1])
+	return T(srcBytes[:(length - unPadding)])
 }
