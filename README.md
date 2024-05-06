@@ -1,9 +1,9 @@
-# go-crypto-suite
+# Dipper
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/yakumioto/go-crypto-suite.svg)](https://pkg.go.dev/github.com/yakumioto/go-crypto-suite)
-[![Go Report Card](https://goreportcard.com/badge/github.com/yakumioto/go-crypto-suite)](https://goreportcard.com/report/github.com/yakumioto/go-crypto-suite)
-[![codecov](https://codecov.io/gh/yakumioto/go-crypto-suite/graph/badge.svg?token=HqETyi1zYV)](https://codecov.io/gh/yakumioto/go-crypto-suite)
-[![actions](https://github.com/yakumioto/go-crypto-suite/actions/workflows/ci.yaml/badge.svg)](https://github.com/yakumioto/go-crypto-suite/actions)
+[![Go Reference](https://pkg.go.dev/badge/github.com/yakumioto/dipper.svg)](https://pkg.go.dev/github.com/yakumioto/dipper)
+[![Go Report Card](https://goreportcard.com/badge/github.com/yakumioto/dipper)](https://goreportcard.com/report/github.com/yakumioto/dipper)
+[![codecov](https://codecov.io/gh/yakumioto/dipper/graph/badge.svg?token=HqETyi1zYV)](https://codecov.io/gh/yakumioto/dipper)
+[![actions](https://github.com/yakumioto/dipper/actions/workflows/ci.yaml/badge.svg)](https://github.com/yakumioto/dipper/actions)
 
 A quick, easy-to-use, and convenient Go language cryptography toolkit that provides a unified interface for key generation, key import/export, encryption/decryption, signing/verification, password hashing, and other functionality.
 
@@ -46,7 +46,7 @@ Unified output format:
 ## Installation
 
 ```
-go get github.com/yakumioto/go-crypto-suite
+go get github.com/yakumioto/dipper
 ```
 
 ## Usage Examples
@@ -59,12 +59,12 @@ package main
 import (
   "fmt"
 
-  "github.com/yakumioto/go-crypto-suite"
-  "github.com/yakumioto/go-crypto-suite/types"
+  "github.com/yakumioto/dipper"
+  "github.com/yakumioto/dipper/types"
 )
 
 func main() {
-  key, err := crypto.KeyImport[string](types.AesGcm256, "123456")
+  key, err := dipper.KeyImport[string](types.AesGcm256, "123456")
   if err != nil {
     panic(err)
   }
@@ -94,12 +94,12 @@ package main
 import (
     "fmt"
 
-    "github.com/yakumioto/go-crypto-suite"
-    "github.com/yakumioto/go-crypto-suite/types"
+    "github.com/yakumioto/dipper"
+    "github.com/yakumioto/dipper/types"
 )
 
 func main() {
-    privKey, err := crypto.KeyGenerate[string](types.EcdsaP256)
+    privKey, err := dipper.KeyGenerate[string](types.EcdsaP256)
     if err != nil {
        panic(err)
     }
@@ -134,13 +134,13 @@ package main
 import (
     "fmt"
 
-    "github.com/yakumioto/go-crypto-suite"
-    "github.com/yakumioto/go-crypto-suite/argon2"
-    "github.com/yakumioto/go-crypto-suite/types"
+    "github.com/yakumioto/dipper"
+    "github.com/yakumioto/dipper/argon2"
+    "github.com/yakumioto/dipper/types"
 )
 
 func main() {
-    key, err := crypto.KeyGenerate[string](types.Argon2,
+    key, err := dipper.KeyGenerate[string](types.Argon2,
        argon2.WithMemory[string](65536),
        argon2.WithTime[string](4),
        argon2.WithThreads[string](4),
@@ -168,7 +168,7 @@ func main() {
 
 ## Community
 
-Telegram：<https://t.me/gocryptosuite>
+Telegram：<https://t.me/godipper>
 
 ## Acknowledgments
 
