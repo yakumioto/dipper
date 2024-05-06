@@ -10,9 +10,9 @@ import (
 
 	"golang.org/x/crypto/chacha20"
 
-	"github.com/yakumioto/go-crypto-suite/key"
-	"github.com/yakumioto/go-crypto-suite/types"
-	"github.com/yakumioto/go-crypto-suite/utils"
+	"github.com/yakumioto/dipper/key"
+	"github.com/yakumioto/dipper/types"
+	"github.com/yakumioto/dipper/utils"
 )
 
 var (

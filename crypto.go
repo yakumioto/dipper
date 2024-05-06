@@ -3,14 +3,14 @@ package crypto
 import (
 	"fmt"
 
-	"github.com/yakumioto/go-crypto-suite/aes"
-	"github.com/yakumioto/go-crypto-suite/argon2"
-	"github.com/yakumioto/go-crypto-suite/ecdsa"
-	"github.com/yakumioto/go-crypto-suite/hmac"
-	"github.com/yakumioto/go-crypto-suite/key"
-	"github.com/yakumioto/go-crypto-suite/pbkdf2"
-	"github.com/yakumioto/go-crypto-suite/rsa"
-	"github.com/yakumioto/go-crypto-suite/types"
+	"github.com/yakumioto/dipper/aes"
+	"github.com/yakumioto/dipper/argon2"
+	"github.com/yakumioto/dipper/ecdsa"
+	"github.com/yakumioto/dipper/hmac"
+	"github.com/yakumioto/dipper/key"
+	"github.com/yakumioto/dipper/pbkdf2"
+	"github.com/yakumioto/dipper/rsa"
+	"github.com/yakumioto/dipper/types"
 )
 
 // KeyImport is a function that imports a cryptographic key based on a given raw data and algorithm.

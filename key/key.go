@@ -1,6 +1,6 @@
 package key
 
-import "github.com/yakumioto/go-crypto-suite/types"
+import "github.com/yakumioto/dipper/types"
 
 // Key is an interface that represents a cryptographic key.
 // It provides methods for getting the algorithm type, byte representation, subject key identifier (SKI),

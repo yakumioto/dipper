@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/yakumioto/go-crypto-suite/types"
+	"github.com/yakumioto/dipper/types"
 )
 
 func TestAlgorithm(t *testing.T) {
