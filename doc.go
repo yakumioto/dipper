@@ -1,4 +1,6 @@
 /*
+Package dipper
+
 Package crypto provides a set of cryptographic utilities in Go.
 
 It includes interfaces and functions for handling cryptographic keys, such as Key, KeyGenerator, and KeyImporter.
@@ -25,4 +27,4 @@ Example usage:
 
 This will encrypt the string "hello world" using the AES CBC 128 algorithm and then decrypt it back to the original string.
 */
-package crypto
+package dipper
