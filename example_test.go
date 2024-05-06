@@ -3,8 +3,8 @@ package crypto
 import (
 	"fmt"
 
-	"github.com/yakumioto/go-crypto-suite/types"
-	"github.com/yakumioto/go-crypto-suite/utils"
+	"github.com/yakumioto/dipper/types"
+	"github.com/yakumioto/dipper/utils"
 )
 
 func ExampleKeyImport() {

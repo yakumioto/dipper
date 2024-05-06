@@ -9,7 +9,7 @@ import (
 
 	"golang.org/x/crypto/pbkdf2"
 
-	"github.com/yakumioto/go-crypto-suite/types"
+	"github.com/yakumioto/dipper/types"
 )
 
 type RandomSizeFunc func(len int) ([]byte, error)
