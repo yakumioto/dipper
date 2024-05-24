@@ -239,7 +239,7 @@ func TestKeyImport(t *testing.T) {
 		pubKeyStr, err := pubKey.Export()
 		assert.NoErrorf(t, err, "Export failed: %s", err)
 
-		pubKey, err = ki.KeyImport(pubKeyStr, tc.algorithm)
+		_, err = ki.KeyImport(pubKeyStr, tc.algorithm)
 		assert.NoErrorf(t, err, "KeyImport failed: %s", err)
 	}
 }

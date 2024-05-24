@@ -152,17 +152,11 @@ func TestUnsupportedMethod(t *testing.T) {
 		_, err = key.Encrypt("hello world")
 		assert.EqualError(t, err, ErrUnsupportedMethod.Error(), "Sign failed")
 
-		// _, err = key.Decrypt("hello world")
-		// assert.EqualError(t, err, ErrUnsupportedMethod.Error(), "Verify failed")
-
 		_, err = key.Verify("", "")
 		assert.EqualError(t, err, ErrUnsupportedMethod.Error(), "Verify failed")
 
 		pk, err := key.PublicKey()
 		assert.NoErrorf(t, err, "PublicKey failed: %s", err)
-
-		// _, err = pk.Encrypt("hello world")
-		// assert.EqualError(t, err, ErrUnsupportedMethod.Error(), "Encrypt failed")
 
 		_, err = pk.Decrypt("hello world")
 		assert.EqualError(t, err, ErrUnsupportedMethod.Error(), "Decrypt failed")
@@ -277,7 +271,7 @@ func TestKeyImport(t *testing.T) {
 		pubKeyStr, err := pubKey.Export()
 		assert.NoErrorf(t, err, "Export failed: %s", err)
 
-		pubKey, err = ki.KeyImport(pubKeyStr, tc.algorithm)
+		_, err = ki.KeyImport(pubKeyStr, tc.algorithm)
 		assert.NoErrorf(t, err, "KeyImport failed: %s", err)
 	}
 }

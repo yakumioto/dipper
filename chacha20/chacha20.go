@@ -105,6 +105,9 @@ func (k *KeyImpl[T]) Decrypt(ciphertext T) (plaintext T, err error) {
 	nonce, ciphertextBytes := encryptedPayload[:k.nonceSize], encryptedPayload[k.nonceSize:]
 
 	aead, err := chacha20.NewUnauthenticatedCipher(k.expendKey, nonce)
+	if err != nil {
+		return T(""), fmt.Errorf("chacha20: decrypt failed to create cipher: %w", err)
+	}
 
 	plaintextBytes := make([]byte, len(ciphertextBytes))
 	aead.XORKeyStream(plaintextBytes, ciphertextBytes)
