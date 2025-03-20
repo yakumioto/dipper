@@ -22,3 +22,4 @@ jobs:
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         slug: ${{ github.repository }}
+        override: true
