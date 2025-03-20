@@ -16,22 +16,22 @@ func ExampleKeyImport() {
 		return b, nil
 	}
 
-	key, err := KeyImport[string](types.AesCbc128, "123456")
+	key, err := KeyImport(types.AesCbc128, "123456")
 	if err != nil {
 		panic(err)
 	}
 
-	ciphertext, err := key.Encrypt("hello world")
+	ciphertext, err := key.Encrypt([]byte("hello world"))
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(ciphertext)
+	fmt.Println(string(ciphertext))
 
 	plaintext, err := key.Decrypt(ciphertext)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(plaintext)
+	fmt.Println(string(plaintext))
 	// Output:
 	// aes_cbc_128.YWFhYWFhYWFhYWFhYWFhYWv1wt6aTe92jzFCoVBvNYU
 	// hello world

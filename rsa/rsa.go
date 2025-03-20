@@ -8,7 +8,6 @@ import (
 	"crypto/sha256"
 	"crypto/x509"
 	"encoding/base64"
-	"encoding/hex"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -23,43 +22,43 @@ var (
 	ErrUnsupportedMethod = errors.New("rsa: unsupported method")
 )
 
-type PrivateKeyImpl[T types.DataType] struct {
+type PrivateKeyImpl struct {
 	algorithm  types.Algorithm
 	privateKey *rsa.PrivateKey
 }
 
-func (r *PrivateKeyImpl[T]) Algorithm() types.Algorithm {
+func (r *PrivateKeyImpl) Algorithm() types.Algorithm {
 	return r.algorithm
 }
 
-func (r *PrivateKeyImpl[T]) Export() (T, error) {
+func (r *PrivateKeyImpl) Export() ([]byte, error) {
 	pkcs1Encoded := x509.MarshalPKCS1PrivateKey(r.privateKey)
 	if pkcs1Encoded == nil {
-		return T(""), errors.New("rsa: failed to marshal private key")
+		return nil, errors.New("rsa: failed to marshal private key")
 	}
 
-	return T(pem.EncodeToMemory(&pem.Block{
+	return pem.EncodeToMemory(&pem.Block{
 		Type:  "PRIVATE RSA KEY",
 		Bytes: pkcs1Encoded,
-	})), nil
+	}), nil
 }
 
-func (r *PrivateKeyImpl[T]) SKI() T {
+func (r *PrivateKeyImpl) SKI() []byte {
 	pubKey, _ := r.PublicKey()
 	return pubKey.SKI()
 }
 
-func (r *PrivateKeyImpl[T]) PublicKey() (key.Key[T], error) {
-	return &PublicKeyImpl[T]{
+func (r *PrivateKeyImpl) PublicKey() (key.Key, error) {
+	return &PublicKeyImpl{
 		publicKey: &r.privateKey.PublicKey,
 		algorithm: r.algorithm,
 	}, nil
 }
 
-func (r *PrivateKeyImpl[T]) Sign(msg T) (T, error) {
+func (r *PrivateKeyImpl) Sign(msg []byte) ([]byte, error) {
 	h := sha256.New()
-	if _, err := h.Write(utils.ToBytes(msg)); err != nil {
-		return T(""), fmt.Errorf("rsa: failed to write message bytes to hash: %w", err)
+	if _, err := h.Write(msg); err != nil {
+		return nil, fmt.Errorf("rsa: failed to write message bytes to hash: %w", err)
 	}
 
 	digest := h.Sum(nil)
@@ -68,7 +67,7 @@ func (r *PrivateKeyImpl[T]) Sign(msg T) (T, error) {
 		SaltLength: rsa.PSSSaltLengthAuto,
 	})
 	if err != nil {
-		return T(""), fmt.Errorf("rsa: failed to sign message: %w", err)
+		return nil, fmt.Errorf("rsa: failed to sign message: %w", err)
 	}
 
 	data := bytes.NewBuffer(nil)
@@ -78,81 +77,78 @@ func (r *PrivateKeyImpl[T]) Sign(msg T) (T, error) {
 	data.WriteString(".")
 	data.WriteString(base64.RawStdEncoding.EncodeToString(payload))
 
-	return T(data.Bytes()), nil
+	return data.Bytes(), nil
 }
 
-func (r *PrivateKeyImpl[T]) Verify(_, _ T) (bool, error) {
+func (r *PrivateKeyImpl) Verify(_, _ []byte) (bool, error) {
 	return false, ErrUnsupportedMethod
 }
 
-func (r *PrivateKeyImpl[T]) Encrypt(_ T) (T, error) {
-	return T(""), ErrUnsupportedMethod
+func (r *PrivateKeyImpl) Encrypt([]byte) ([]byte, error) {
+	return nil, ErrUnsupportedMethod
 }
 
-func (r *PrivateKeyImpl[T]) Decrypt(ciphertext T) (T, error) {
-	dataBytes := utils.ToString(ciphertext)
-	parts := strings.SplitN(dataBytes, ".", 2)
+func (r *PrivateKeyImpl) Decrypt(ciphertext []byte) ([]byte, error) {
+	dataStr := string(ciphertext)
+	parts := strings.SplitN(dataStr, ".", 2)
 	if len(parts) != 2 {
-		return T(""), errors.New("rsa: invalid encrypted data structure")
+		return nil, errors.New("rsa: invalid encrypted data structure")
 	}
 
 	algorithm, payload := parts[0], parts[1]
 
 	if algorithm != r.algorithm {
-		return T(""), fmt.Errorf("rsa: invalid algorithm type: %s", algorithm)
+		return nil, fmt.Errorf("rsa: invalid algorithm type: %s", algorithm)
 	}
 
 	encryptedData, err := base64.RawStdEncoding.DecodeString(payload)
 	if err != nil {
-		return T(""), fmt.Errorf("rsa: decrypt failed to decode base64: %w", err)
+		return nil, fmt.Errorf("rsa: decrypt failed to decode base64: %w", err)
 	}
 
 	data, err := rsa.DecryptOAEP(sha256.New(), rand.Reader, r.privateKey, encryptedData, nil)
 	if err != nil {
-		return T(""), fmt.Errorf("rsa: decrypt error: %w", err)
+		return nil, fmt.Errorf("rsa: decrypt error: %w", err)
 	}
 
-	return T(data), nil
+	return data, nil
 }
 
-type PublicKeyImpl[T types.DataType] struct {
+type PublicKeyImpl struct {
 	algorithm types.Algorithm
 	publicKey *rsa.PublicKey
 }
 
-func (r *PublicKeyImpl[T]) Algorithm() types.Algorithm {
+func (r *PublicKeyImpl) Algorithm() types.Algorithm {
 	return r.algorithm
 }
 
-func (r *PublicKeyImpl[T]) Export() (T, error) {
+func (r *PublicKeyImpl) Export() ([]byte, error) {
 	pkcs1Encoded := x509.MarshalPKCS1PublicKey(r.publicKey)
-	return T(pem.EncodeToMemory(&pem.Block{
+	return pem.EncodeToMemory(&pem.Block{
 		Type:  "PUBLIC KEY",
 		Bytes: pkcs1Encoded,
-	})), nil
+	}), nil
 }
 
-func (r *PublicKeyImpl[T]) SKI() T {
+func (r *PublicKeyImpl) SKI() []byte {
 	raw := x509.MarshalPKCS1PublicKey(r.publicKey)
-
 	h := sha256.New()
 	h.Write(raw)
-
-	return T(hex.EncodeToString(h.Sum(nil)))
+	return h.Sum(nil)
 }
 
-func (r *PublicKeyImpl[T]) PublicKey() (key.Key[T], error) {
+func (r *PublicKeyImpl) PublicKey() (key.Key, error) {
 	return nil, ErrUnsupportedMethod
 }
 
-func (r *PublicKeyImpl[T]) Sign(_ T) (T, error) {
-	return T(""), ErrUnsupportedMethod
+func (r *PublicKeyImpl) Sign([]byte) ([]byte, error) {
+	return nil, ErrUnsupportedMethod
 }
 
-func (r *PublicKeyImpl[T]) Verify(msg, signature T) (bool, error) {
-	dataBytes := utils.ToString(signature)
-
-	parts := strings.SplitN(dataBytes, ".", 3)
+func (r *PublicKeyImpl) Verify(msg, signature []byte) (bool, error) {
+	dataStr := string(signature)
+	parts := strings.SplitN(dataStr, ".", 3)
 	if len(parts) != 3 {
 		return false, errors.New("rsa: invalid signature data structure")
 	}
@@ -174,7 +170,7 @@ func (r *PublicKeyImpl[T]) Verify(msg, signature T) (bool, error) {
 	}
 
 	h := sha256.New()
-	if _, err = h.Write(utils.ToBytes(msg)); err != nil {
+	if _, err = h.Write(msg); err != nil {
 		return false, fmt.Errorf("rsa: failed to compute message : %w", err)
 	}
 	digest := h.Sum(nil)
@@ -186,16 +182,16 @@ func (r *PublicKeyImpl[T]) Verify(msg, signature T) (bool, error) {
 	if err = rsa.VerifyPSS(r.publicKey, crypto.SHA256, digest, providedSignature, &rsa.PSSOptions{
 		SaltLength: rsa.PSSSaltLengthAuto,
 	}); err != nil {
-		return false, fmt.Errorf("rsa: failed to verify signature: %w", err)
+		return false, nil
 	}
 
 	return true, nil
 }
 
-func (r *PublicKeyImpl[T]) Encrypt(plaintext T) (T, error) {
-	payload, err := rsa.EncryptOAEP(sha256.New(), rand.Reader, r.publicKey, utils.ToBytes(plaintext), nil)
+func (r *PublicKeyImpl) Encrypt(plaintext []byte) ([]byte, error) {
+	payload, err := rsa.EncryptOAEP(sha256.New(), rand.Reader, r.publicKey, plaintext, nil)
 	if err != nil {
-		return T(""), fmt.Errorf("rsa: failed to encrypt message: %w", err)
+		return nil, fmt.Errorf("rsa: failed to encrypt message: %w", err)
 	}
 
 	data := bytes.NewBuffer(nil)
@@ -203,16 +199,16 @@ func (r *PublicKeyImpl[T]) Encrypt(plaintext T) (T, error) {
 	data.WriteString(".")
 	data.WriteString(base64.RawStdEncoding.EncodeToString(payload))
 
-	return T(data.Bytes()), nil
+	return data.Bytes(), nil
 }
 
-func (r *PublicKeyImpl[T]) Decrypt(_ T) (T, error) {
-	return T(""), ErrUnsupportedMethod
+func (r *PublicKeyImpl) Decrypt([]byte) ([]byte, error) {
+	return nil, ErrUnsupportedMethod
 }
 
-type KeyGeneratorImpl[T types.DataType] struct{}
+type KeyGeneratorImpl struct{}
 
-func (r *KeyGeneratorImpl[T]) KeyGen(alg types.Algorithm, opts ...key.Option[T]) (key.Key[T], error) {
+func (r *KeyGeneratorImpl) KeyGen(alg types.Algorithm, opts ...key.Option) (key.Key, error) {
 	var bits int
 
 	switch alg {
@@ -231,15 +227,15 @@ func (r *KeyGeneratorImpl[T]) KeyGen(alg types.Algorithm, opts ...key.Option[T])
 		return nil, fmt.Errorf("rsa: failed to generate private key: %w", err)
 	}
 
-	return &PrivateKeyImpl[T]{
+	return &PrivateKeyImpl{
 		algorithm:  alg,
 		privateKey: privateKey,
 	}, nil
 }
 
-type KeyImportImpl[T types.DataType] struct{}
+type KeyImportImpl struct{}
 
-func (r *KeyImportImpl[T]) KeyImport(raw interface{}, alg types.Algorithm, opts ...key.Option[T]) (key.Key[T], error) {
+func (r *KeyImportImpl) KeyImport(raw interface{}, alg types.Algorithm, opts ...key.Option) (key.Key, error) {
 	data, err := utils.ToKeyBytes(raw)
 	if err != nil {
 		return nil, err
@@ -252,7 +248,7 @@ func (r *KeyImportImpl[T]) KeyImport(raw interface{}, alg types.Algorithm, opts 
 
 	privKey, privErr := x509.ParsePKCS1PrivateKey(block.Bytes)
 	if privErr == nil {
-		return &PrivateKeyImpl[T]{
+		return &PrivateKeyImpl{
 			algorithm:  alg,
 			privateKey: privKey,
 		}, nil
@@ -260,7 +256,7 @@ func (r *KeyImportImpl[T]) KeyImport(raw interface{}, alg types.Algorithm, opts 
 
 	pubKey, pubErr := x509.ParsePKCS1PublicKey(block.Bytes)
 	if pubErr == nil {
-		return &PublicKeyImpl[T]{
+		return &PublicKeyImpl{
 			algorithm: alg,
 			publicKey: pubKey,
 		}, nil

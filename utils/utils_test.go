@@ -1,101 +1,198 @@
 package utils
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestToKeyBytes(t *testing.T) {
-	// test empty key by string
-	_, err := ToKeyBytes("")
-	assert.Error(t, err)
+	testCases := []struct {
+		name        string
+		input       interface{}
+		expected    []byte
+		expectError bool
+	}{
+		{
+			name:        "空字符串键",
+			input:       "",
+			expectError: true,
+		},
+		{
+			name:        "空字节数组键",
+			input:       []byte{},
+			expectError: true,
+		},
+		{
+			name:        "不支持的结构体类型",
+			input:       struct{}{},
+			expectError: true,
+		},
+		{
+			name:        "有效字符串键",
+			input:       "validKey",
+			expected:    []byte("validKey"),
+			expectError: false,
+		},
+		{
+			name:        "有效字节数组键",
+			input:       []byte("validBytes"),
+			expected:    []byte("validBytes"),
+			expectError: false,
+		},
+	}
 
-	// test empty key by byte
-	_, err = ToKeyBytes([]byte{})
-	assert.Error(t, err)
-
-	// test key by struct
-	_, err = ToKeyBytes(struct{}{})
-	assert.Error(t, err)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := ToKeyBytes(tc.input)
+			if tc.expectError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tc.expected, result)
+			}
+		})
+	}
 }
 
-func TestToString(t *testing.T) {
-	// test empty key by string
-	data := ToString[string]("hello world")
-	assert.Equal(t, "hello world", data)
+func TestExtendKey(t *testing.T) {
+	testCases := []struct {
+		name           string
+		inputKey       []byte
+		targetLength   int
+		expectedLength int
+	}{
+		{
+			name:           "短密钥扩展到16字节",
+			inputKey:       []byte("short"),
+			targetLength:   16,
+			expectedLength: 16,
+		},
+		{
+			name:           "长密钥扩展到32字节",
+			inputKey:       []byte("this is a longer key for testing"),
+			targetLength:   32,
+			expectedLength: 32,
+		},
+		{
+			name:           "扩展到0长度",
+			inputKey:       []byte("short"),
+			targetLength:   0,
+			expectedLength: 0,
+		},
+	}
 
-	// test empty key by byte
-	data = ToString[[]byte]([]byte("hello world"))
-	assert.Equal(t, "hello world", data)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := ExtendKey(tc.inputKey, tc.targetLength)
+			assert.Equal(t, tc.expectedLength, len(result))
+		})
+	}
 }
 
-func TestToHexString(t *testing.T) {
-	data := ToHexString[string]("hello world")
-	assert.Equal(t, "68656c6c6f20776f726c64", data)
+func TestRandomSize(t *testing.T) {
+	testCases := []struct {
+		name   string
+		length int
+	}{
+		{
+			name:   "生成8字节随机数据",
+			length: 8,
+		},
+		{
+			name:   "生成16字节随机数据",
+			length: 16,
+		},
+		{
+			name:   "生成32字节随机数据",
+			length: 32,
+		},
+		{
+			name:   "生成64字节随机数据",
+			length: 64,
+		},
+	}
 
-	data = ToHexString[[]byte]([]byte("hello world"))
-	assert.Equal(t, "68656c6c6f20776f726c64", data)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			randomBytes, err := RandomSize(tc.length)
+			assert.NoError(t, err)
+			assert.Equal(t, tc.length, len(randomBytes))
 
-	data = ToHexString[[]byte](nil)
-	assert.Equal(t, "", data)
-}
+			// 生成另一组随机数据确保它们不同（随机性检查）
+			anotherRandomBytes, err := RandomSize(tc.length)
+			assert.NoError(t, err)
+			assert.Equal(t, tc.length, len(anotherRandomBytes))
 
-func TestToBytes(t *testing.T) {
-	// test empty key by string
-	data := ToBytes[string]("hello world")
-	assert.Equal(t, []byte("hello world"), data)
-
-	// test empty key by byte
-	data = ToBytes[[]byte]([]byte("hello world"))
-	assert.Equal(t, []byte("hello world"), data)
+			// 两组随机数据极不可能相同
+			assert.NotEqual(t, randomBytes, anotherRandomBytes)
+		})
+	}
 }
 
 func TestPkcs7Padding(t *testing.T) {
-	// Test case 1: Padding a string
-	src := "hello world"
-	blockSize := 16
-	expected := []byte("hello world\x05\x05\x05\x05\x05")
-	result := Pkcs7Padding(src, blockSize)
-	assert.Equal(t, expected, result)
+	testCases := []struct {
+		name      string
+		input     []byte
+		blockSize int
+		expected  []byte
+	}{
+		{
+			name:      "数据长度小于块大小的填充",
+			input:     []byte("hello world"),
+			blockSize: 16,
+			expected:  []byte("hello world\x05\x05\x05\x05\x05"),
+		},
+		{
+			name:      "数据长度接近块大小的填充",
+			input:     []byte("exactly sixteen"),
+			blockSize: 16,
+			expected:  append([]byte("exactly sixteen"), byte(1)),
+		},
+		{
+			name:      "空字节数组的填充",
+			input:     []byte{},
+			blockSize: 8,
+			expected:  bytes.Repeat([]byte{byte(8)}, 8),
+		},
+	}
 
-	// Test case 2: Padding a byte slice
-	src2 := []byte("test data")
-	blockSize2 := 8
-	expected2 := []byte("test data\x07\x07\x07\x07\x07\x07\x07")
-	result2 := Pkcs7Padding(src2, blockSize2)
-	assert.Equal(t, expected2, result2)
-
-	// Test case 3: Padding an empty string
-	src3 := ""
-	blockSize3 := 8
-	expected3 := []byte("\x08\x08\x08\x08\x08\x08\x08\x08")
-	result3 := Pkcs7Padding(src3, blockSize3)
-	assert.Equal(t, expected3, result3)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := Pkcs7Padding(tc.input, tc.blockSize)
+			assert.Equal(t, tc.expected, result)
+		})
+	}
 }
 
 func TestPkcs7UnPadding(t *testing.T) {
-	// Test case 1: Unpadding a string
-	src := []byte("hello world\x05\x05\x05\x05\x05")
-	expected := []byte("hello world")
-	result := Pkcs7UnPadding(src)
-	assert.Equal(t, expected, result)
+	testCases := []struct {
+		name     string
+		input    []byte
+		expected []byte
+	}{
+		{
+			name:     "解除已填充数组的填充",
+			input:    []byte("hello world\x05\x05\x05\x05\x05"),
+			expected: []byte("hello world"),
+		},
+		{
+			name:     "解除填充为整块的数据",
+			input:    append([]byte("sixteen bytes..."), bytes.Repeat([]byte{byte(16)}, 16)...),
+			expected: []byte("sixteen bytes..."),
+		},
+		{
+			name:     "解除空字节数组的填充",
+			input:    []byte{},
+			expected: []byte{},
+		},
+	}
 
-	// Test case 2: Unpadding a byte slice
-	src2 := []byte("test data\x07\x07\x07\x07\x07\x07\x07")
-	expected2 := []byte("test data")
-	result2 := Pkcs7UnPadding(src2)
-	assert.Equal(t, expected2, result2)
-
-	// Test case 3: Unpadding an empty string
-	src3 := []byte("\x08\x08\x08\x08\x08\x08\x08\x08")
-	expected3 := []byte("")
-	result3 := Pkcs7UnPadding(src3)
-	assert.Equal(t, expected3, result3)
-
-	// Test case 4: empty byte slice
-	src4 := []byte{}
-	expected4 := []byte{}
-	result4 := Pkcs7UnPadding(src4)
-	assert.Equal(t, expected4, result4)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := Pkcs7UnPadding(tc.input)
+			assert.Equal(t, tc.expected, result)
+		})
+	}
 }

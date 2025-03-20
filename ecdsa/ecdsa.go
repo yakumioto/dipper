@@ -10,7 +10,6 @@ import (
 	"crypto/subtle"
 	"crypto/x509"
 	"encoding/base64"
-	"encoding/hex"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -25,45 +24,46 @@ var (
 	ErrUnsupportedMethod = errors.New("ecdsa: unsupported method")
 )
 
-type PrivateKey[T types.DataType] struct {
+type PrivateKey struct {
 	privateKey *ecdsa.PrivateKey
 	algorithm  types.Algorithm
 }
 
-func (e *PrivateKey[T]) Algorithm() types.Algorithm {
+func (e *PrivateKey) Algorithm() types.Algorithm {
 	return e.algorithm
 }
 
-func (e *PrivateKey[T]) Export() (key T, err error) {
+func (e *PrivateKey) Export() ([]byte, error) {
 	pkcs8Encoded, err := x509.MarshalPKCS8PrivateKey(e.privateKey)
 	if err != nil {
-		return T(""), fmt.Errorf("ecdsa: failed to marshal private pubKey: %w", err)
+		return nil, fmt.Errorf("ecdsa: failed to marshal private key: %w", err)
 	}
 
-	return T(pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: pkcs8Encoded})), nil
+	return pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: pkcs8Encoded}), nil
 }
 
-func (e *PrivateKey[T]) SKI() T {
+func (e *PrivateKey) SKI() []byte {
 	pubKey, _ := e.PublicKey()
 	return pubKey.SKI()
 }
 
-func (e *PrivateKey[T]) PublicKey() (key.Key[T], error) {
-	return &PublicKey[T]{
+func (e *PrivateKey) PublicKey() (key.Key, error) {
+	return &PublicKey{
 		algorithm: e.algorithm,
-		publicKey: &e.privateKey.PublicKey}, nil
+		publicKey: &e.privateKey.PublicKey,
+	}, nil
 }
 
-func (e *PrivateKey[T]) Sign(msg T) (signature T, err error) {
+func (e *PrivateKey) Sign(msg []byte) ([]byte, error) {
 	h := sha256.New()
-	if _, err = h.Write(utils.ToBytes(msg)); err != nil {
-		return T(""), fmt.Errorf("ecdsa: failed to write message bytes to hash: %w", err)
+	if _, err := h.Write(msg); err != nil {
+		return nil, fmt.Errorf("ecdsa: failed to write message bytes to hash: %w", err)
 	}
 	digest := h.Sum(nil)
 
 	payload, err := e.privateKey.Sign(rand.Reader, digest, crypto.SHA256)
 	if err != nil {
-		return T(""), fmt.Errorf("ecdsa: failed to sign message: %w", err)
+		return nil, fmt.Errorf("ecdsa: failed to sign message: %w", err)
 	}
 
 	data := bytes.NewBuffer(nil)
@@ -73,57 +73,56 @@ func (e *PrivateKey[T]) Sign(msg T) (signature T, err error) {
 	data.WriteString(".")
 	data.WriteString(base64.RawStdEncoding.EncodeToString(payload))
 
-	return T(data.Bytes()), nil
+	return data.Bytes(), nil
 }
 
-func (e *PrivateKey[T]) Verify(_, _ T) (bool, error) {
+func (e *PrivateKey) Verify(_, _ []byte) (bool, error) {
 
 	return false, ErrUnsupportedMethod
 }
 
-func (e *PrivateKey[T]) Encrypt(_ T) (ciphertext T, err error) {
-	return T(""), ErrUnsupportedMethod
+func (e *PrivateKey) Encrypt(_ []byte) ([]byte, error) {
+	return nil, ErrUnsupportedMethod
 }
 
-func (e *PrivateKey[T]) Decrypt(_ T) (plaintext T, err error) {
-	return T(""), ErrUnsupportedMethod
+func (e *PrivateKey) Decrypt(_ []byte) ([]byte, error) {
+	return nil, ErrUnsupportedMethod
 }
 
-type PublicKey[T types.DataType] struct {
+type PublicKey struct {
 	publicKey *ecdsa.PublicKey
 	algorithm types.Algorithm
 }
 
-func (e *PublicKey[T]) Algorithm() types.Algorithm {
+func (e *PublicKey) Algorithm() types.Algorithm {
 	return e.algorithm
 }
 
-func (e *PublicKey[T]) Export() (key T, err error) {
+func (e *PublicKey) Export() ([]byte, error) {
 	pkcs8Encoded, err := x509.MarshalPKIXPublicKey(e.publicKey)
 	if err != nil {
-		return T(""), fmt.Errorf("ecdsa: failed to marshal public pubKey: %w", err)
+		return nil, fmt.Errorf("ecdsa: failed to marshal public key: %w", err)
 	}
-	return T(pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: pkcs8Encoded})), nil
+	return pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: pkcs8Encoded}), nil
 }
 
-func (e *PublicKey[T]) SKI() T {
+func (e *PublicKey) SKI() []byte {
 	raw := elliptic.MarshalCompressed(e.publicKey.Curve, e.publicKey.X, e.publicKey.Y)
-
 	hash := sha256.New()
 	hash.Write(raw)
-	return T(hex.EncodeToString(hash.Sum(nil)))
+	return hash.Sum(nil)
 }
 
-func (e *PublicKey[T]) PublicKey() (key.Key[T], error) {
+func (e *PublicKey) PublicKey() (key.Key, error) {
 	return e, ErrUnsupportedMethod
 }
 
-func (e *PublicKey[T]) Sign(_ T) (T, error) {
-	return T(""), ErrUnsupportedMethod
+func (e *PublicKey) Sign(_ []byte) ([]byte, error) {
+	return nil, ErrUnsupportedMethod
 }
 
-func (e *PublicKey[T]) Verify(msg, signature T) (bool, error) {
-	dataBytes := utils.ToString(signature)
+func (e *PublicKey) Verify(msg, signature []byte) (bool, error) {
+	dataBytes := string(signature)
 
 	parts := strings.SplitN(dataBytes, ".", 3)
 	if len(parts) != 3 {
@@ -147,7 +146,7 @@ func (e *PublicKey[T]) Verify(msg, signature T) (bool, error) {
 	}
 
 	h := sha256.New()
-	if _, err = h.Write(utils.ToBytes(msg)); err != nil {
+	if _, err = h.Write(msg); err != nil {
 		return false, fmt.Errorf("ecdsa: failed to compute message : %w", err)
 	}
 	digest := h.Sum(nil)
@@ -163,17 +162,17 @@ func (e *PublicKey[T]) Verify(msg, signature T) (bool, error) {
 	return true, nil
 }
 
-func (e *PublicKey[T]) Encrypt(_ T) (T, error) {
-	return T(""), ErrUnsupportedMethod
+func (e *PublicKey) Encrypt(_ []byte) ([]byte, error) {
+	return nil, ErrUnsupportedMethod
 }
 
-func (e *PublicKey[T]) Decrypt(_ T) (T, error) {
-	return T(""), ErrUnsupportedMethod
+func (e *PublicKey) Decrypt(_ []byte) ([]byte, error) {
+	return nil, ErrUnsupportedMethod
 }
 
-type KeyGeneratorImpl[T types.DataType] struct{}
+type KeyGeneratorImpl struct{}
 
-func (e *KeyGeneratorImpl[T]) KeyGen(alg types.Algorithm, opts ...key.Option[T]) (key.Key[T], error) {
+func (e *KeyGeneratorImpl) KeyGen(alg types.Algorithm, opts ...key.Option) (key.Key, error) {
 	var curve elliptic.Curve
 	switch alg {
 	case types.EcdsaP256:
@@ -191,15 +190,15 @@ func (e *KeyGeneratorImpl[T]) KeyGen(alg types.Algorithm, opts ...key.Option[T])
 		return nil, fmt.Errorf("ecdsa: failed to generate private key: %w", err)
 	}
 
-	return &PrivateKey[T]{
+	return &PrivateKey{
 		algorithm:  alg,
 		privateKey: privateKey,
 	}, nil
 }
 
-type KeyImportImpl[T types.DataType] struct{}
+type KeyImportImpl struct{}
 
-func (e *KeyImportImpl[T]) KeyImport(raw interface{}, alg types.Algorithm, opts ...key.Option[T]) (key.Key[T], error) {
+func (e *KeyImportImpl) KeyImport(raw interface{}, alg types.Algorithm, opts ...key.Option) (key.Key, error) {
 	keyBytes, err := utils.ToKeyBytes(raw)
 	if err != nil {
 		return nil, err
@@ -212,7 +211,7 @@ func (e *KeyImportImpl[T]) KeyImport(raw interface{}, alg types.Algorithm, opts 
 
 	k, pkcs8Err := x509.ParsePKCS8PrivateKey(block.Bytes)
 	if pkcs8Err == nil {
-		return &PrivateKey[T]{
+		return &PrivateKey{
 			algorithm:  alg,
 			privateKey: k.(*ecdsa.PrivateKey),
 		}, nil
@@ -220,7 +219,7 @@ func (e *KeyImportImpl[T]) KeyImport(raw interface{}, alg types.Algorithm, opts 
 
 	k, pkixErr := x509.ParsePKIXPublicKey(block.Bytes)
 	if pkixErr == nil {
-		return &PublicKey[T]{
+		return &PublicKey{
 			algorithm: alg,
 			publicKey: k.(*ecdsa.PublicKey),
 		}, nil

@@ -50,11 +50,11 @@ EvkLDqystUP/kc0HNXe12wJAa8MUGKrA342qJ4w896KqxuF+L9/6RO0p4Dvpw+n/
 	}
 
 	for _, tc := range tcs {
-		_, err := KeyImport[string](tc.algorithm, tc.key)
+		_, err := KeyImport(tc.algorithm, tc.key)
 		assert.NoError(t, err, "KeyImport failed")
 	}
 
-	_, err := KeyImport[string]("unsupported", "123456")
+	_, err := KeyImport("unsupported", "123456")
 	assert.Error(t, err, "KeyImport failed")
 }
 
@@ -77,10 +77,10 @@ func TestKeyGenerate(t *testing.T) {
 	}
 
 	for _, tc := range tcs {
-		_, err := KeyGenerate[string](tc.algorithm)
+		_, err := KeyGenerate(tc.algorithm)
 		assert.NoError(t, err, "KeyGenerate failed")
 	}
 
-	_, err := KeyGenerate[string]("unsupported")
+	_, err := KeyGenerate("unsupported")
 	assert.Error(t, err, "KeyGenerate failed")
 }

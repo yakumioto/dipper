@@ -20,35 +20,34 @@ var (
 	ErrUnsupportedMethod = errors.New("hmac-sha: unsupported method")
 )
 
-type ShaKeyImpl[T types.DataType] struct {
+type ShaKeyImpl struct {
 	key           []byte
 	algorithm     types.Algorithm
 	signatureFunc func() hash.Hash
 }
 
-func (s *ShaKeyImpl[T]) Algorithm() types.Algorithm {
+func (s *ShaKeyImpl) Algorithm() types.Algorithm {
 	return s.algorithm
 }
 
-func (s *ShaKeyImpl[T]) Export() (T, error) {
-	return T(s.key), nil
+func (s *ShaKeyImpl) Export() ([]byte, error) {
+	return s.key, nil
 }
 
-func (s *ShaKeyImpl[T]) SKI() T {
+func (s *ShaKeyImpl) SKI() []byte {
 	sha := sha256.New()
 	sha.Write(s.key)
-
-	return T(utils.ToHexString(sha.Sum(nil)))
+	return sha.Sum(nil)
 }
 
-func (s *ShaKeyImpl[T]) PublicKey() (key.Key[T], error) {
+func (s *ShaKeyImpl) PublicKey() (key.Key, error) {
 	return nil, ErrUnsupportedMethod
 }
 
-func (s *ShaKeyImpl[T]) Sign(msg T) (signature T, err error) {
+func (s *ShaKeyImpl) Sign(msg []byte) ([]byte, error) {
 	h := sha256.New()
-	if _, err := h.Write(utils.ToBytes(msg)); err != nil {
-		return T(""), fmt.Errorf("hmac-sha: failed to write message bytes to hash: %w", err)
+	if _, err := h.Write(msg); err != nil {
+		return nil, fmt.Errorf("hmac-sha: failed to write message bytes to hash: %w", err)
 	}
 
 	digest := h.Sum(nil)
@@ -63,13 +62,12 @@ func (s *ShaKeyImpl[T]) Sign(msg T) (signature T, err error) {
 	data.WriteString(".")
 	data.WriteString(base64.RawStdEncoding.EncodeToString(hc.Sum(nil)))
 
-	return T(data.Bytes()), nil
+	return data.Bytes(), nil
 }
 
-func (s *ShaKeyImpl[T]) Verify(msg, signature T) (bool, error) {
-	dataBytes := utils.ToString(signature)
-
-	parts := strings.SplitN(dataBytes, ".", 3)
+func (s *ShaKeyImpl) Verify(msg, signature []byte) (bool, error) {
+	dataStr := string(signature)
+	parts := strings.SplitN(dataStr, ".", 3)
 	if len(parts) != 3 {
 		return false, errors.New("hmac-sha: invalid signature data structure")
 	}
@@ -91,7 +89,7 @@ func (s *ShaKeyImpl[T]) Verify(msg, signature T) (bool, error) {
 	}
 
 	h := sha256.New()
-	if _, err = h.Write(utils.ToBytes(msg)); err != nil {
+	if _, err = h.Write(msg); err != nil {
 		return false, fmt.Errorf("hmac-sha: failed to compute message : %w", err)
 	}
 
@@ -107,17 +105,17 @@ func (s *ShaKeyImpl[T]) Verify(msg, signature T) (bool, error) {
 	return hmac.Equal(hc.Sum(nil), providedSignature), nil
 }
 
-func (s *ShaKeyImpl[T]) Encrypt(_ T) (T, error) {
-	return T(""), ErrUnsupportedMethod
+func (s *ShaKeyImpl) Encrypt([]byte) ([]byte, error) {
+	return nil, ErrUnsupportedMethod
 }
 
-func (s *ShaKeyImpl[T]) Decrypt(_ T) (T, error) {
-	return T(""), ErrUnsupportedMethod
+func (s *ShaKeyImpl) Decrypt([]byte) ([]byte, error) {
+	return nil, ErrUnsupportedMethod
 }
 
-type ShaKeyImportImpl[T types.DataType] struct{}
+type ShaKeyImportImpl struct{}
 
-func (h *ShaKeyImportImpl[T]) KeyImport(raw interface{}, alg types.Algorithm, opts ...key.Option[T]) (key.Key[T], error) {
+func (h *ShaKeyImportImpl) KeyImport(raw interface{}, alg types.Algorithm, opts ...key.Option) (key.Key, error) {
 	keyBytes, err := utils.ToKeyBytes(raw)
 	if err != nil {
 		return nil, err
@@ -125,13 +123,13 @@ func (h *ShaKeyImportImpl[T]) KeyImport(raw interface{}, alg types.Algorithm, op
 
 	switch alg {
 	case types.HmacSha256:
-		return &ShaKeyImpl[T]{
+		return &ShaKeyImpl{
 			key:           keyBytes,
 			algorithm:     alg,
 			signatureFunc: sha256.New,
 		}, nil
 	case types.HmacSha512:
-		return &ShaKeyImpl[T]{
+		return &ShaKeyImpl{
 			key:           keyBytes,
 			algorithm:     alg,
 			signatureFunc: sha512.New,

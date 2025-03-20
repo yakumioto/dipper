@@ -12,19 +12,13 @@ func TestAlgorithm(t *testing.T) {
 	tcs := []struct {
 		algorithm types.Algorithm
 	}{
-		{
-			algorithm: types.EcdsaP256,
-		},
-		{
-			algorithm: types.EcdsaP384,
-		},
-		{
-			algorithm: types.EcdsaP521,
-		},
+		{algorithm: types.EcdsaP256},
+		{algorithm: types.EcdsaP384},
+		{algorithm: types.EcdsaP521},
 	}
 
 	for _, tc := range tcs {
-		ki := new(KeyGeneratorImpl[string])
+		ki := new(KeyGeneratorImpl)
 
 		key, err := ki.KeyGen(tc.algorithm)
 		assert.NoErrorf(t, err, "KeyGen failed: %s", err)
@@ -52,7 +46,7 @@ func TestExport(t *testing.T) {
 	}
 
 	for _, tc := range tcs {
-		ki := new(KeyGeneratorImpl[string])
+		ki := new(KeyGeneratorImpl)
 
 		key, err := ki.KeyGen(tc.algorithm)
 		assert.NoErrorf(t, err, "KeyGen failed: %s", err)
@@ -86,7 +80,7 @@ func TestSKI(t *testing.T) {
 	}
 
 	for _, tc := range tcs {
-		ki := new(KeyGeneratorImpl[string])
+		ki := new(KeyGeneratorImpl)
 
 		key, err := ki.KeyGen(tc.algorithm)
 		assert.NoErrorf(t, err, "KeyGen failed: %s", err)
@@ -114,7 +108,7 @@ func TestKeyPubicKey(t *testing.T) {
 	}
 
 	for _, tc := range tcs {
-		ki := new(KeyGeneratorImpl[string])
+		ki := new(KeyGeneratorImpl)
 
 		privKey, err := ki.KeyGen(tc.algorithm)
 		assert.NoErrorf(t, err, "KeyGen failed: %s", err)
@@ -144,30 +138,30 @@ func TestUnsupportedMethod(t *testing.T) {
 	}
 
 	for _, tc := range tcs {
-		ki := new(KeyGeneratorImpl[string])
+		ki := new(KeyGeneratorImpl)
 
 		key, err := ki.KeyGen(tc.algorithm)
 		assert.NoErrorf(t, err, "KeyGen failed: %s", err)
 
-		_, err = key.Encrypt("hello world")
+		_, err = key.Encrypt([]byte("hello world"))
 		assert.EqualError(t, err, ErrUnsupportedMethod.Error(), "Sign failed")
 
-		_, err = key.Decrypt("hello world")
+		_, err = key.Decrypt([]byte("hello world"))
 		assert.EqualError(t, err, ErrUnsupportedMethod.Error(), "Verify failed")
 
-		_, err = key.Verify("", "")
+		_, err = key.Verify([]byte(""), []byte(""))
 		assert.EqualError(t, err, ErrUnsupportedMethod.Error(), "Verify failed")
 
 		pk, err := key.PublicKey()
 		assert.NoErrorf(t, err, "PublicKey failed: %s", err)
 
-		_, err = pk.Encrypt("hello world")
+		_, err = pk.Encrypt([]byte("hello world"))
 		assert.EqualError(t, err, ErrUnsupportedMethod.Error(), "Encrypt failed")
 
-		_, err = pk.Decrypt("hello world")
+		_, err = pk.Decrypt([]byte("hello world"))
 		assert.EqualError(t, err, ErrUnsupportedMethod.Error(), "Decrypt failed")
 
-		_, err = pk.Sign("")
+		_, err = pk.Sign([]byte(""))
 		assert.EqualError(t, err, ErrUnsupportedMethod.Error(), "Sign failed")
 	}
 }
@@ -176,31 +170,28 @@ func TestSignAndVerify(t *testing.T) {
 	tcs := []struct {
 		algorithm types.Algorithm
 	}{
-		{
-			algorithm: types.EcdsaP256,
-		},
-		{
-			algorithm: types.EcdsaP384,
-		},
+		{algorithm: types.EcdsaP256},
+		{algorithm: types.EcdsaP384},
 	}
 
 	for _, tc := range tcs {
-		ki := new(KeyGeneratorImpl[string])
+		ki := new(KeyGeneratorImpl)
 
 		privKey, err := ki.KeyGen(tc.algorithm)
 		assert.NoErrorf(t, err, "KeyGen failed: %s", err)
 
-		ct, err := privKey.Sign("hello world")
+		msg := []byte("hello world")
+		signature, err := privKey.Sign(msg)
 		assert.NoErrorf(t, err, "Sign failed: %s", err)
 
 		pubKey, err := privKey.PublicKey()
 		assert.NoErrorf(t, err, "PublicKey failed: %s", err)
 
-		t.Log(ct)
+		t.Log(string(signature))
 
-		plaintext, err := pubKey.Verify("hello world", ct)
+		valid, err := pubKey.Verify(msg, signature)
 		assert.NoErrorf(t, err, "Verify failed: %s", err)
-		assert.True(t, plaintext, "Verify failed")
+		assert.True(t, valid, "Verify failed")
 	}
 }
 
@@ -220,7 +211,7 @@ func TestKeyImport(t *testing.T) {
 	}
 
 	for _, tc := range tcs {
-		kg := new(KeyGeneratorImpl[string])
+		kg := new(KeyGeneratorImpl)
 
 		privKey, err := kg.KeyGen(tc.algorithm)
 		assert.NoErrorf(t, err, "KeyGen failed: %s", err)
@@ -228,7 +219,7 @@ func TestKeyImport(t *testing.T) {
 		privKeyStr, err := privKey.Export()
 		assert.NoErrorf(t, err, "Export failed: %s", err)
 
-		ki := new(KeyImportImpl[string])
+		ki := new(KeyImportImpl)
 
 		privKey, err = ki.KeyImport(privKeyStr, tc.algorithm)
 		assert.NoErrorf(t, err, "KeyImport failed: %s", err)

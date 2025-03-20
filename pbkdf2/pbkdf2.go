@@ -23,7 +23,7 @@ var (
 	ErrUnsupportedMethod = errors.New("pbkdf2: unsupported method")
 )
 
-type KeyImpl[T types.DataType] struct {
+type KeyImpl struct {
 	algorithm  types.Algorithm
 	saltSize   int
 	iterations int
@@ -31,58 +31,55 @@ type KeyImpl[T types.DataType] struct {
 	digestFunc func() hash.Hash
 }
 
-func WithIterations[T types.DataType](iterations int) key.Option[T] {
-	return func(k key.Key[T]) error {
-		if _, ok := k.(*KeyImpl[T]); ok {
+func WithIterations(iterations int) key.Option {
+	return func(k key.Key) error {
+		if ki, ok := k.(*KeyImpl); ok {
 			if iterations <= 0 {
 				return nil
 			}
-
-			k.(*KeyImpl[T]).iterations = iterations
+			ki.iterations = iterations
 			return nil
 		}
 		return errors.New("pbkdf2: invalid key type")
 	}
 }
 
-func WithSaltSize[T types.DataType](saltSize int) key.Option[T] {
-	return func(k key.Key[T]) error {
-		if _, ok := k.(*KeyImpl[T]); ok {
+func WithSaltSize(saltSize int) key.Option {
+	return func(k key.Key) error {
+		if ki, ok := k.(*KeyImpl); ok {
 			if saltSize <= 0 {
 				return nil
 			}
-
-			k.(*KeyImpl[T]).saltSize = saltSize
+			ki.saltSize = saltSize
 			return nil
 		}
-
 		return errors.New("pbkdf2: invalid key type")
 	}
 }
 
-func (k *KeyImpl[T]) Algorithm() types.Algorithm {
+func (k *KeyImpl) Algorithm() types.Algorithm {
 	return k.algorithm
 }
 
-func (k *KeyImpl[T]) Export() (key T, err error) {
-	return T(""), ErrUnsupportedMethod
-}
-
-func (k *KeyImpl[T]) SKI() T {
-	return T("")
-}
-
-func (k *KeyImpl[T]) PublicKey() (key.Key[T], error) {
+func (k *KeyImpl) Export() ([]byte, error) {
 	return nil, ErrUnsupportedMethod
 }
 
-func (k *KeyImpl[T]) Sign(msg T) (signature T, err error) {
+func (k *KeyImpl) SKI() []byte {
+	return nil
+}
+
+func (k *KeyImpl) PublicKey() (key.Key, error) {
+	return nil, ErrUnsupportedMethod
+}
+
+func (k *KeyImpl) Sign(msg []byte) ([]byte, error) {
 	saltBytes, err := utils.RandomSize(k.saltSize)
 	if err != nil {
-		return T(""), fmt.Errorf("pbkdf2: failed to generate random salt: %w", err)
+		return nil, fmt.Errorf("pbkdf2: failed to generate random salt: %w", err)
 	}
 
-	digest := pbkdf2.Key(utils.ToBytes(msg), saltBytes, k.iterations, k.keyLen, k.digestFunc)
+	digest := pbkdf2.Key(msg, saltBytes, k.iterations, k.keyLen, k.digestFunc)
 
 	payload := fmt.Sprintf("%d$%s$%s",
 		k.iterations,
@@ -95,13 +92,12 @@ func (k *KeyImpl[T]) Sign(msg T) (signature T, err error) {
 	data.WriteString(".")
 	data.WriteString(payload)
 
-	return T(data.Bytes()), nil
+	return data.Bytes(), nil
 }
 
-func (k *KeyImpl[T]) Verify(msg, signature T) (bool, error) {
-	dataBytes := utils.ToString(signature)
-
-	parts := strings.SplitN(dataBytes, ".", 2)
+func (k *KeyImpl) Verify(msg, signature []byte) (bool, error) {
+	dataStr := string(signature)
+	parts := strings.SplitN(dataStr, ".", 2)
 	if len(parts) != 2 {
 		return false, errors.New("pbkdf2: invalid signature data structure")
 	}
@@ -134,23 +130,23 @@ func (k *KeyImpl[T]) Verify(msg, signature T) (bool, error) {
 		return false, fmt.Errorf("pbkdf2: decrypt provided digest failed to decode base64: %w", err)
 	}
 
-	computedDigest := pbkdf2.Key(utils.ToBytes(msg), providedSalt, providedIterations, k.keyLen, k.digestFunc)
+	computedDigest := pbkdf2.Key(msg, providedSalt, providedIterations, k.keyLen, k.digestFunc)
 
 	return hmac.Equal(providedDigest, computedDigest), nil
 }
 
-func (k *KeyImpl[T]) Encrypt(_ T) (ciphertext T, err error) {
-	return T(""), ErrUnsupportedMethod
+func (k *KeyImpl) Encrypt([]byte) ([]byte, error) {
+	return nil, ErrUnsupportedMethod
 }
 
-func (k *KeyImpl[T]) Decrypt(_ T) (plaintext T, err error) {
-	return T(""), ErrUnsupportedMethod
+func (k *KeyImpl) Decrypt([]byte) ([]byte, error) {
+	return nil, ErrUnsupportedMethod
 }
 
-type KeyGeneratorImpl[T types.DataType] struct{}
+type KeyGeneratorImpl struct{}
 
-func (k *KeyGeneratorImpl[T]) KeyGen(alg types.Algorithm, opts ...key.Option[T]) (key.Key[T], error) {
-	ki := &KeyImpl[T]{
+func (k *KeyGeneratorImpl) KeyGen(alg types.Algorithm, opts ...key.Option) (key.Key, error) {
+	ki := &KeyImpl{
 		algorithm:  alg,
 		saltSize:   16,
 		iterations: 10000,
@@ -166,12 +162,10 @@ func (k *KeyGeneratorImpl[T]) KeyGen(alg types.Algorithm, opts ...key.Option[T])
 	case types.Pbkdf2Sha256:
 		ki.digestFunc = sha256.New
 		ki.keyLen = sha256.Size
-
 		return ki, nil
 	case types.Pbkdf2Sha512:
 		ki.digestFunc = sha512.New
 		ki.keyLen = sha512.Size
-
 		return ki, nil
 	default:
 		return nil, fmt.Errorf("pbkdf2: invalid algorithm: %v", alg)

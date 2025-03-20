@@ -24,87 +24,87 @@ var (
 	ErrUnsupportedMethod = errors.New("argon2: unsupported method")
 )
 
-func WithMethod[T types.DataType](method string) key.Option[T] {
-	return func(k key.Key[T]) error {
-		if _, ok := k.(*KeyImpl[T]); ok {
+func WithMethod(method string) key.Option {
+	return func(k key.Key) error {
+		if ki, ok := k.(*KeyImpl); ok {
 			if method != MethodArgon2i && method != MethodArgon2id {
 				return fmt.Errorf("argon2: invalid method: %s", method)
 			}
 
-			k.(*KeyImpl[T]).method = method
+			ki.method = method
 			return nil
 		}
 		return errors.New("argon2: invalid key type")
 	}
 }
 
-func WithSaltSize[T types.DataType](size int) key.Option[T] {
-	return func(k key.Key[T]) error {
-		if _, ok := k.(*KeyImpl[T]); ok {
+func WithSaltSize(size int) key.Option {
+	return func(k key.Key) error {
+		if ki, ok := k.(*KeyImpl); ok {
 			if size <= 0 {
 				return nil
 			}
 
-			k.(*KeyImpl[T]).saltSize = size
+			ki.saltSize = size
 			return nil
 		}
 		return errors.New("argon2: invalid key type")
 	}
 }
 
-func WithTime[T types.DataType](time uint32) key.Option[T] {
-	return func(k key.Key[T]) error {
-		if _, ok := k.(*KeyImpl[T]); ok {
+func WithTime(time uint32) key.Option {
+	return func(k key.Key) error {
+		if ki, ok := k.(*KeyImpl); ok {
 			if time == 0 {
 				return nil
 			}
-			k.(*KeyImpl[T]).time = time
+			ki.time = time
 			return nil
 		}
 		return errors.New("argon2: invalid key type")
 	}
 }
 
-func WithMemory[T types.DataType](memory uint32) key.Option[T] {
-	return func(k key.Key[T]) error {
-		if _, ok := k.(*KeyImpl[T]); ok {
+func WithMemory(memory uint32) key.Option {
+	return func(k key.Key) error {
+		if ki, ok := k.(*KeyImpl); ok {
 			if memory == 0 {
 				return nil
 			}
-			k.(*KeyImpl[T]).memory = memory
+			ki.memory = memory
 			return nil
 		}
 		return errors.New("argon2: invalid key type")
 	}
 }
 
-func WithThreads[T types.DataType](threads uint8) key.Option[T] {
-	return func(k key.Key[T]) error {
-		if _, ok := k.(*KeyImpl[T]); ok {
+func WithThreads(threads uint8) key.Option {
+	return func(k key.Key) error {
+		if ki, ok := k.(*KeyImpl); ok {
 			if threads == 0 {
 				return nil
 			}
-			k.(*KeyImpl[T]).threads = threads
+			ki.threads = threads
 			return nil
 		}
 		return errors.New("argon2: invalid key type")
 	}
 }
 
-func WithLength[T types.DataType](length uint32) key.Option[T] {
-	return func(k key.Key[T]) error {
-		if _, ok := k.(*KeyImpl[T]); ok {
+func WithLength(length uint32) key.Option {
+	return func(k key.Key) error {
+		if ki, ok := k.(*KeyImpl); ok {
 			if length <= 0 {
 				return nil
 			}
-			k.(*KeyImpl[T]).length = length
+			ki.length = length
 			return nil
 		}
 		return errors.New("argon2: invalid key type")
 	}
 }
 
-type KeyImpl[T types.DataType] struct {
+type KeyImpl struct {
 	algorithm types.Algorithm
 	method    string
 	saltSize  int
@@ -114,33 +114,33 @@ type KeyImpl[T types.DataType] struct {
 	length    uint32
 }
 
-func (k *KeyImpl[T]) Algorithm() types.Algorithm {
+func (k *KeyImpl) Algorithm() types.Algorithm {
 	return k.algorithm
 }
 
-func (k *KeyImpl[T]) Export() (key T, err error) {
-	return T(""), ErrUnsupportedMethod
-}
-
-func (k *KeyImpl[T]) SKI() T {
-	return T("")
-}
-
-func (k *KeyImpl[T]) PublicKey() (key.Key[T], error) {
+func (k *KeyImpl) Export() ([]byte, error) {
 	return nil, ErrUnsupportedMethod
 }
 
-func (k *KeyImpl[T]) Sign(msg T) (signature T, err error) {
+func (k *KeyImpl) SKI() []byte {
+	return []byte("")
+}
+
+func (k *KeyImpl) PublicKey() (key.Key, error) {
+	return nil, ErrUnsupportedMethod
+}
+
+func (k *KeyImpl) Sign(msg []byte) ([]byte, error) {
 	saltBytes, err := utils.RandomSize(k.saltSize)
 	if err != nil {
-		return T(""), fmt.Errorf("pbkdf2: failed to generate random salt: %w", err)
+		return nil, fmt.Errorf("argon2: failed to generate random salt: %w", err)
 	}
 
 	var digest []byte
 	if k.method == MethodArgon2i {
-		digest = argon2.Key(utils.ToBytes(msg), saltBytes, k.time, k.memory, k.threads, k.length)
+		digest = argon2.Key(msg, saltBytes, k.time, k.memory, k.threads, k.length)
 	} else {
-		digest = argon2.IDKey(utils.ToBytes(msg), saltBytes, k.time, k.memory, k.threads, k.length)
+		digest = argon2.IDKey(msg, saltBytes, k.time, k.memory, k.threads, k.length)
 	}
 
 	payload := fmt.Sprintf("%s$v=%d$m=%d,t=%d,p=%d$%s$%s",
@@ -158,11 +158,11 @@ func (k *KeyImpl[T]) Sign(msg T) (signature T, err error) {
 	data.WriteString(".")
 	data.WriteString(payload)
 
-	return T(data.Bytes()), nil
+	return data.Bytes(), nil
 }
 
-func (k *KeyImpl[T]) Verify(msg, signature T) (bool, error) {
-	dataBytes := utils.ToString(signature)
+func (k *KeyImpl) Verify(msg, signature []byte) (bool, error) {
+	dataBytes := string(signature)
 
 	parts := strings.SplitN(dataBytes, ".", 2)
 	if len(parts) != 2 {
@@ -214,26 +214,26 @@ func (k *KeyImpl[T]) Verify(msg, signature T) (bool, error) {
 
 	var computedDigest []byte
 	if method == MethodArgon2i {
-		computedDigest = argon2.Key(utils.ToBytes(msg), saltBytes, time, memory, threads, k.length)
+		computedDigest = argon2.Key(msg, saltBytes, time, memory, threads, k.length)
 	} else {
-		computedDigest = argon2.IDKey(utils.ToBytes(msg), saltBytes, time, memory, threads, k.length)
+		computedDigest = argon2.IDKey(msg, saltBytes, time, memory, threads, k.length)
 	}
 
 	return hmac.Equal(providedDigest, computedDigest), nil
 }
 
-func (k *KeyImpl[T]) Encrypt(plaintext T) (ciphertext T, err error) {
-	return T(""), ErrUnsupportedMethod
+func (k *KeyImpl) Encrypt(plaintext []byte) ([]byte, error) {
+	return nil, ErrUnsupportedMethod
 }
 
-func (k *KeyImpl[T]) Decrypt(ciphertext T) (plaintext T, err error) {
-	return T(""), ErrUnsupportedMethod
+func (k *KeyImpl) Decrypt(ciphertext []byte) ([]byte, error) {
+	return nil, ErrUnsupportedMethod
 }
 
-type KeyGeneratorImpl[T types.DataType] struct{}
+type KeyGeneratorImpl struct{}
 
-func (k *KeyGeneratorImpl[T]) KeyGen(alg types.Algorithm, opts ...key.Option[T]) (key.Key[T], error) {
-	ki := &KeyImpl[T]{
+func (k *KeyGeneratorImpl) KeyGen(alg types.Algorithm, opts ...key.Option) (key.Key, error) {
+	ki := &KeyImpl{
 		algorithm: alg,
 		method:    MethodArgon2id,
 		saltSize:  16,

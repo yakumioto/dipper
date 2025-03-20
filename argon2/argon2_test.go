@@ -18,7 +18,7 @@ func TestAlgorithm(t *testing.T) {
 	}
 
 	for _, tc := range tcs {
-		ki := new(KeyGeneratorImpl[string])
+		ki := new(KeyGeneratorImpl)
 
 		key, err := ki.KeyGen(tc.algorithm)
 		assert.NoErrorf(t, err, "KeyGen failed: %s", err)
@@ -37,12 +37,12 @@ func TestSKI(t *testing.T) {
 	}
 
 	for _, tc := range tcs {
-		ki := new(KeyGeneratorImpl[string])
+		ki := new(KeyGeneratorImpl)
 
 		key, err := ki.KeyGen(tc.algorithm)
 		assert.NoErrorf(t, err, "KeyGen failed: %s", err)
 
-		assert.Equal(t, "", key.SKI(), "SKI failed")
+		assert.Equal(t, []byte(""), key.SKI(), "SKI failed")
 	}
 }
 
@@ -56,7 +56,7 @@ func TestUnsupportedMethod(t *testing.T) {
 	}
 
 	for _, tc := range tcs {
-		ki := new(KeyGeneratorImpl[string])
+		ki := new(KeyGeneratorImpl)
 
 		key, err := ki.KeyGen(tc.algorithm)
 		assert.NoErrorf(t, err, "KeyGen failed: %s", err)
@@ -67,12 +67,11 @@ func TestUnsupportedMethod(t *testing.T) {
 		_, err = key.PublicKey()
 		assert.EqualError(t, err, ErrUnsupportedMethod.Error(), "PublicKey failed")
 
-		_, err = key.Encrypt("hello world")
-		assert.EqualError(t, err, ErrUnsupportedMethod.Error(), "Sign failed")
+		_, err = key.Encrypt([]byte("hello world"))
+		assert.EqualError(t, err, ErrUnsupportedMethod.Error(), "Encrypt failed")
 
-		_, err = key.Decrypt("hello world")
-		assert.EqualError(t, err, ErrUnsupportedMethod.Error(), "Verify failed")
-
+		_, err = key.Decrypt([]byte("hello world"))
+		assert.EqualError(t, err, ErrUnsupportedMethod.Error(), "Decrypt failed")
 	}
 }
 
@@ -122,25 +121,25 @@ func TestSignAndVerify(t *testing.T) {
 	}
 
 	for _, tc := range tcs {
-		ki := new(KeyGeneratorImpl[string])
+		ki := new(KeyGeneratorImpl)
 
 		k, err := ki.KeyGen(
 			tc.algorithm,
-			WithMethod[string](tc.method),
-			WithSaltSize[string](tc.saltSize),
-			WithTime[string](tc.time),
-			WithMemory[string](tc.memory),
-			WithThreads[string](tc.threads),
-			WithLength[string](tc.length),
+			WithMethod(tc.method),
+			WithSaltSize(tc.saltSize),
+			WithTime(tc.time),
+			WithMemory(tc.memory),
+			WithThreads(tc.threads),
+			WithLength(tc.length),
 		)
 		assert.NoError(t, err, "KeyGen failed")
 
-		signature, err := k.Sign("123456")
+		signature, err := k.Sign([]byte("123456"))
 		assert.NoError(t, err, "Sign failed")
 
-		t.Log(signature)
+		t.Log(string(signature))
 
-		result, err := k.Verify("123456", signature)
+		result, err := k.Verify([]byte("123456"), signature)
 		assert.NoError(t, err, "Verify failed")
 		assert.True(t, result, "Verify failed")
 	}

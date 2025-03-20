@@ -4,12 +4,9 @@ import (
 	"bytes"
 	"crypto/rand"
 	"crypto/sha256"
-	"encoding/hex"
 	"errors"
 
 	"golang.org/x/crypto/pbkdf2"
-
-	"github.com/yakumioto/dipper/types"
 )
 
 type RandomSizeFunc func(len int) ([]byte, error)
@@ -46,51 +43,18 @@ func ToKeyBytes(key interface{}) ([]byte, error) {
 	}
 }
 
-func ToString[T types.DataType](b T) string {
-	switch b := any(b).(type) {
-	case []byte:
-		return string(b)
-	case string:
-		return b
-	}
-
-	return ""
+func Pkcs7Padding(data []byte, blockSize int) []byte {
+	padding := blockSize - len(data)%blockSize
+	padText := bytes.Repeat([]byte{byte(padding)}, padding)
+	return append(data, padText...)
 }
 
-func ToHexString[T types.DataType](b T) string {
-	dataBytes := ToBytes(b)
-
-	return hex.EncodeToString(dataBytes)
-}
-
-func ToBytes[T types.DataType](s T) []byte {
-	switch b := any(s).(type) {
-	case string:
-		return []byte(b)
-	default:
-		return b.([]byte)
-	}
-}
-
-func Pkcs7Padding[T types.DataType](src T, blockSize int) []byte {
-	srcBytes := ToBytes[T](src)
-	paddingSize := blockSize - len(srcBytes)%blockSize
-
-	paddingText := bytes.Repeat([]byte{byte(paddingSize)}, paddingSize)
-	paddedData := make([]byte, len(srcBytes)+len(paddingText))
-	copy(paddedData, srcBytes)
-	copy(paddedData[len(srcBytes):], paddingText)
-
-	return paddedData
-}
-
-func Pkcs7UnPadding[T types.DataType](src T) T {
-	srcBytes := ToBytes[T](src)
-	length := len(srcBytes)
+func Pkcs7UnPadding(src []byte) []byte {
+	length := len(src)
 	if length == 0 {
 		return src
 	}
 
-	unPadding := int(srcBytes[length-1])
-	return T(srcBytes[:(length - unPadding)])
+	unPadding := int(src[length-1])
+	return src[:(length - unPadding)]
 }

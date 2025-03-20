@@ -1,11 +1,5 @@
 package types
 
-// DataType is an interface that represents the data type of cryptographic key.
-// It can be either a byte slice or a string.
-type DataType interface {
-	~[]byte | ~string
-}
-
 type Algorithm = string
 
 // hash algorithms type

@@ -12,16 +12,12 @@ func TestAlgorithm(t *testing.T) {
 	tcs := []struct {
 		algorithm types.Algorithm
 	}{
-		{
-			algorithm: types.Pbkdf2Sha256,
-		},
-		{
-			algorithm: types.Pbkdf2Sha256,
-		},
+		{algorithm: types.Pbkdf2Sha256},
+		{algorithm: types.Pbkdf2Sha512},
 	}
 
 	for _, tc := range tcs {
-		ki := new(KeyGeneratorImpl[string])
+		ki := new(KeyGeneratorImpl)
 
 		key, err := ki.KeyGen(tc.algorithm)
 		assert.NoErrorf(t, err, "KeyGen failed: %s", err)
@@ -34,21 +30,17 @@ func TestSKI(t *testing.T) {
 	tcs := []struct {
 		algorithm types.Algorithm
 	}{
-		{
-			algorithm: types.Pbkdf2Sha256,
-		},
-		{
-			algorithm: types.Pbkdf2Sha256,
-		},
+		{algorithm: types.Pbkdf2Sha256},
+		{algorithm: types.Pbkdf2Sha512},
 	}
 
 	for _, tc := range tcs {
-		ki := new(KeyGeneratorImpl[string])
+		ki := new(KeyGeneratorImpl)
 
 		key, err := ki.KeyGen(tc.algorithm)
 		assert.NoErrorf(t, err, "KeyGen failed: %s", err)
 
-		assert.Equal(t, "", key.SKI(), "SKI failed")
+		assert.Nil(t, key.SKI(), "SKI failed")
 	}
 }
 
@@ -56,16 +48,12 @@ func TestUnsupportedMethod(t *testing.T) {
 	tcs := []struct {
 		algorithm types.Algorithm
 	}{
-		{
-			algorithm: types.Pbkdf2Sha256,
-		},
-		{
-			algorithm: types.Pbkdf2Sha256,
-		},
+		{algorithm: types.Pbkdf2Sha256},
+		{algorithm: types.Pbkdf2Sha512},
 	}
 
 	for _, tc := range tcs {
-		ki := new(KeyGeneratorImpl[string])
+		ki := new(KeyGeneratorImpl)
 
 		key, err := ki.KeyGen(tc.algorithm)
 		assert.NoErrorf(t, err, "KeyGen failed: %s", err)
@@ -76,12 +64,11 @@ func TestUnsupportedMethod(t *testing.T) {
 		_, err = key.PublicKey()
 		assert.EqualError(t, err, ErrUnsupportedMethod.Error(), "PublicKey failed")
 
-		_, err = key.Encrypt("hello world")
-		assert.EqualError(t, err, ErrUnsupportedMethod.Error(), "Sign failed")
+		_, err = key.Encrypt([]byte("hello world"))
+		assert.EqualError(t, err, ErrUnsupportedMethod.Error(), "Encrypt failed")
 
-		_, err = key.Decrypt("hello world")
-		assert.EqualError(t, err, ErrUnsupportedMethod.Error(), "Verify failed")
-
+		_, err = key.Decrypt([]byte("hello world"))
+		assert.EqualError(t, err, ErrUnsupportedMethod.Error(), "Decrypt failed")
 	}
 }
 
@@ -91,12 +78,8 @@ func TestSignAndVerify(t *testing.T) {
 		saltSize   int
 		iterations int
 	}{
-		{
-			algorithm: types.Pbkdf2Sha256,
-		},
-		{
-			algorithm: types.Pbkdf2Sha512,
-		},
+		{algorithm: types.Pbkdf2Sha256},
+		{algorithm: types.Pbkdf2Sha512},
 		{
 			algorithm:  types.Pbkdf2Sha256,
 			iterations: 20000,
@@ -108,19 +91,19 @@ func TestSignAndVerify(t *testing.T) {
 	}
 
 	for _, tc := range tcs {
-		ki := new(KeyGeneratorImpl[string])
+		ki := new(KeyGeneratorImpl)
 
-		k, err := ki.KeyGen(tc.algorithm, WithIterations[string](tc.iterations), WithSaltSize[string](tc.saltSize))
+		k, err := ki.KeyGen(tc.algorithm, WithIterations(tc.iterations), WithSaltSize(tc.saltSize))
 		assert.NoErrorf(t, err, "KeyGen failed: %s", err)
 
-		signature, err := k.Sign("123456")
+		msg := []byte("123456")
+		signature, err := k.Sign(msg)
 		assert.NoErrorf(t, err, "Sign failed: %s", err)
 
-		t.Log(signature)
+		t.Log(string(signature))
 
-		result, err := k.Verify("123456", signature)
+		result, err := k.Verify(msg, signature)
 		assert.NoErrorf(t, err, "Verify failed: %s", err)
 		assert.True(t, result, "Verify failed")
-
 	}
 }
