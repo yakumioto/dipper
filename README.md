@@ -1,3 +1,5 @@
+
+
 # Dipper
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/yakumioto/dipper.svg)](https://pkg.go.dev/github.com/yakumioto/dipper)
@@ -62,7 +64,7 @@ import (
 )
 
 func main() {
-	key, err := crypto.KeyImport(types.AesGcm256, "123456")
+	key, err := dipper.KeyImport(types.AesGcm256, "123456")
 	if err != nil {
 		panic(err)
 	}
